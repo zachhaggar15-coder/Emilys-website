@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Capital Cards</title>
+    <meta
+      name="description"
+      content="A Quizlet-like flashcard game for learning UN member country names and capitals."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="opening-splash" id="opening-splash" aria-label="Opening bouquet animation">
+      <div class="bouquet-card">
+        <img
+          src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHlqYnFtMHhlcW5waHA3dzB6NGJlYXJ0ejEwdWFva3dibjE5aHVzZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/LVoKLJpevqUo1BYpTn/giphy.gif"
+          alt="Animated bouquet of flowers"
+        />
+        <p>A quick bouquet before the world tour begins</p>
+      </div>
+    </div>
+
+    <main class="app-shell">
+      <section class="intro" aria-labelledby="app-title">
+        <div>
+          <p class="eyebrow">Country and capital trainer</p>
+          <h1 id="app-title">Capital Cards</h1>
+          <p class="intro-copy">
+            Flip through UN member states, type answers or play multiple choice,
+            and build a streak while your mental map gets sharper.
+          </p>
+        </div>
+        <div class="session-summary" aria-label="Session score">
+          <div>
+            <span class="metric-value" id="score-value">0</span>
+            <span class="metric-label">Correct</span>
+          </div>
+          <div>
+            <span class="metric-value" id="streak-value">0</span>
+            <span class="metric-label">Streak</span>
+          </div>
+          <div>
+            <span class="metric-value" id="best-streak-value">0</span>
+            <span class="metric-label">Best</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="Quiz controls">
+        <div class="control-group">
+          <span class="control-label">Deck</span>
+          <div class="chip-row" id="continent-controls"></div>
+        </div>
+
+        <div class="control-grid">
+          <label class="select-field">
+            <span>Prompt mode</span>
+            <select id="mode-select">
+              <option value="country-to-capital">Country to capital</option>
+              <option value="capital-to-country">Capital to country</option>
+              <option value="mixed">Mixed</option>
+            </select>
+          </label>
+
+          <label class="select-field">
+            <span>Answer style</span>
+            <select id="answer-style-select">
+              <option value="type">Type the answer</option>
+              <option value="choice">Multiple choice</option>
+            </select>
+          </label>
+
+          <button class="secondary-button" id="restart-button" type="button">
+            New round
+          </button>
+        </div>
+      </section>
+
+      <section class="study-layout">
+        <aside class="progress-panel" aria-label="Round progress">
+          <div class="level-badge" id="level-badge">Map Starter</div>
+          <div class="progress-copy">
+            <span id="deck-count">193 cards</span>
+            <span id="answered-count">0 answered</span>
+          </div>
+          <div class="progress-track" aria-hidden="true">
+            <span id="progress-fill"></span>
+          </div>
+          <p class="motivation" id="motivation-text" aria-live="polite">
+            Choose your deck and start the streak.
+          </p>
+          <div class="mini-tip">
+            Session progress resets when you refresh the page.
+          </div>
+        </aside>
+
+        <section class="card-stage" aria-label="Current flashcard">
+          <div class="card-frame" id="card-frame">
+            <div class="flashcard" id="flashcard">
+              <div class="card-face card-front">
+                <span class="card-kicker" id="prompt-label">Country</span>
+                <h2 id="prompt-text">Loading...</h2>
+                <p id="prompt-helper">Name the capital.</p>
+              </div>
+              <div class="card-face card-back">
+                <span class="card-kicker">Answer</span>
+                <h2 id="answer-text">Loading...</h2>
+                <p id="answer-helper">Pair locked in.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="answer-area">
+            <form class="typed-answer" id="typed-answer-form">
+              <label for="typed-answer-input">Your answer</label>
+              <div class="answer-line">
+                <input
+                  id="typed-answer-input"
+                  autocomplete="off"
+                  placeholder="Type the matching country or capital"
+                />
+                <button class="primary-button" type="submit">Check</button>
+              </div>
+            </form>
+
+            <div class="choice-answer" id="choice-answer" hidden></div>
+
+            <div class="feedback-row">
+              <p class="feedback" id="feedback-text" aria-live="polite"></p>
+              <div class="action-row">
+                <button class="ghost-button" id="show-answer-button" type="button">
+                  Show answer
+                </button>
+                <button class="primary-button" id="next-button" type="button">
+                  Next card
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div class="celebration-layer" id="celebration-layer" aria-hidden="true"></div>
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
