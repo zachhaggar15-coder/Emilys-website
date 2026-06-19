@@ -36,6 +36,7 @@
     promptHelper: document.getElementById("prompt-helper"),
     answerText: document.getElementById("answer-text"),
     answerHelper: document.getElementById("answer-helper"),
+    funFactText: document.getElementById("fun-fact-text"),
     typedAnswerForm: document.getElementById("typed-answer-form"),
     typedAnswerInput: document.getElementById("typed-answer-input"),
     choiceAnswer: document.getElementById("choice-answer"),
@@ -208,6 +209,11 @@
     elements.answerHelper.textContent = isCountryPrompt
       ? state.current.country + " -> " + state.current.capital
       : state.current.capital + " -> " + state.current.country;
+    elements.funFactText.textContent = state.current.fact || getFallbackFact(state.current);
+  }
+
+  function getFallbackFact(card) {
+    return card.capital + " is the capital of " + card.country + ", one of the UN member states in " + card.continent + ".";
   }
 
   function renderAnswerControls() {
