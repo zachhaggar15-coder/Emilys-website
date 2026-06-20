@@ -1,8 +1,15 @@
 (function () {
   var cards = window.COUNTRY_CAPITALS || [];
   var continents = ["Whole World", "Africa", "Asia", "Europe", "North America", "South America", "Oceania"];
+  var populationFilters = [
+    { label: "All", value: "all" },
+    { label: "Well known", value: "well-known" },
+    { label: "Medium", value: "medium" },
+    { label: "Niche", value: "niche" },
+  ];
   var state = {
     continent: "Whole World",
+    populationTier: "all",
     mode: "country-to-capital",
     answerStyle: "type",
     deck: [],
@@ -18,6 +25,7 @@
 
   var elements = {
     continentControls: document.getElementById("continent-controls"),
+    populationControls: document.getElementById("population-controls"),
     modeSelect: document.getElementById("mode-select"),
     answerStyleSelect: document.getElementById("answer-style-select"),
     restartButton: document.getElementById("restart-button"),
@@ -76,6 +84,7 @@
 
   function init() {
     renderContinentControls();
+    renderPopulationControls();
     bindEvents();
     scheduleOpeningSplash();
     startRound();
@@ -130,9 +139,35 @@
     });
   }
 
+  function renderPopulationControls() {
+    elements.populationControls.innerHTML = "";
+    populationFilters.forEach(function (filter) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "chip";
+      button.textContent = filter.label;
+      button.setAttribute("aria-pressed", String(filter.value === state.populationTier));
+      button.addEventListener("click", function () {
+        state.populationTier = filter.value;
+        updateActivePopulationFilter();
+        startRound();
+      });
+      elements.populationControls.appendChild(button);
+    });
+  }
+
   function updateActiveContinent() {
     Array.prototype.forEach.call(elements.continentControls.children, function (button) {
       button.setAttribute("aria-pressed", String(button.textContent === state.continent));
+    });
+  }
+
+  function updateActivePopulationFilter() {
+    Array.prototype.forEach.call(elements.populationControls.children, function (button) {
+      var filter = populationFilters.find(function (item) {
+        return item.label === button.textContent;
+      });
+      button.setAttribute("aria-pressed", String(filter && filter.value === state.populationTier));
     });
   }
 
@@ -151,16 +186,17 @@
   }
 
   function getFilteredCards() {
-    if (state.continent === "Whole World") {
-      return cards.slice();
-    }
     return cards.filter(function (card) {
-      return card.continent === state.continent;
+      var matchesContinent = state.continent === "Whole World" || card.continent === state.continent;
+      var matchesPopulation = state.populationTier === "all" || card.populationTier === state.populationTier;
+      return matchesContinent && matchesPopulation;
     });
   }
 
   function nextCard() {
     if (!state.deck.length) {
+      renderEmptyDeck();
+      updateStats();
       return;
     }
 
@@ -189,6 +225,24 @@
         elements.typedAnswerInput.focus();
       }, 80);
     }
+  }
+
+  function renderEmptyDeck() {
+    state.current = null;
+    state.hasAnswered = false;
+    elements.cardFrame.classList.remove("answered", "is-correct", "is-wrong");
+    elements.promptLabel.textContent = "No cards";
+    elements.promptText.textContent = "No matches";
+    elements.promptHelper.textContent = "Try another well-known level or continent.";
+    elements.answerText.textContent = "Adjust filters";
+    elements.answerHelper.textContent = "This deck has no countries in that combination.";
+    elements.funFactText.textContent = "Well known is 50m-plus people, medium is about 5m to 50m, and niche is under about 5m.";
+    elements.feedbackText.textContent = "";
+    elements.typedAnswerInput.value = "";
+    elements.typedAnswerInput.disabled = true;
+    elements.nextButton.disabled = true;
+    elements.showAnswerButton.disabled = true;
+    elements.choiceAnswer.innerHTML = "";
   }
 
   function getPromptType() {
