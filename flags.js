@@ -213,6 +213,8 @@
       card.flagCode = flagCode;
       card.flagEmoji = flagCode ? toFlagEmoji(flagCode) : "";
       card.flagClass = flagCode ? "fi fi-" + flagCode.toLowerCase() : "";
+      // Add a robust SVG fallback hosted on FlagCDN (lowercase ISO2)
+      card.flagUrl = flagCode ? "https://flagcdn.com/" + flagCode.toLowerCase() + ".svg" : "";
     });
   }
 })();

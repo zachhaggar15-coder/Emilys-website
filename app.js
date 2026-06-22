@@ -300,7 +300,9 @@
     elements.answerHelper.textContent = "This deck has no countries in that combination.";
     elements.funFactText.textContent = "Well known is 50m-plus people, medium is about 5m to 50m, and niche is under about 5m.";
     elements.promptFlag.className = "flag-symbol";
+    elements.promptFlag.innerHTML = "";
     elements.answerFlag.className = "flag-symbol";
+    elements.answerFlag.innerHTML = "";
     elements.feedbackText.textContent = "";
     elements.typedAnswerInput.value = "";
     elements.typedAnswerInput.disabled = true;
@@ -322,12 +324,23 @@
     var prompt = isCountryPrompt ? state.current.country : state.current.capital;
     var answer = isCountryPrompt ? state.current.capital : state.current.country;
     elements.promptLabel.textContent = isCountryPrompt ? "Country" : "Capital";
-    elements.promptFlag.className = "flag-symbol " + (state.current.flagClass || "");
+    elements.promptFlag.className = "flag-symbol";
     elements.promptFlag.setAttribute("title", state.current.country + " flag");
+    // Prefer an SVG image from FlagCDN for reliable rendering; fall back to emoji
+    if (state.current.flagUrl) {
+      elements.promptFlag.innerHTML = '<img src="' + state.current.flagUrl + '" alt="' + state.current.country + ' flag" class="flag-img" loading="lazy">';
+    } else {
+      elements.promptFlag.innerHTML = state.current.flagEmoji || "";
+    }
     elements.promptText.textContent = prompt;
     elements.promptHelper.textContent = isCountryPrompt ? "Name the capital." : "Name the country.";
-    elements.answerFlag.className = "flag-symbol " + (state.current.flagClass || "");
+    elements.answerFlag.className = "flag-symbol";
     elements.answerFlag.setAttribute("title", state.current.country + " flag");
+    if (state.current.flagUrl) {
+      elements.answerFlag.innerHTML = '<img src="' + state.current.flagUrl + '" alt="' + state.current.country + ' flag" class="flag-img" loading="lazy">';
+    } else {
+      elements.answerFlag.innerHTML = state.current.flagEmoji || "";
+    }
     elements.answerText.textContent = answer;
     elements.answerHelper.textContent = isCountryPrompt
       ? state.current.country + " -> " + state.current.capital
