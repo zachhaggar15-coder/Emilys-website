@@ -7,6 +7,47 @@
     { label: "Medium", value: "medium" },
     { label: "Niche", value: "niche" },
   ];
+  var mapPathById = {};
+  var mapCenterById = {};
+  var svgNamespace = "http://www.w3.org/2000/svg";
+  var mapViewBoxes = {
+    "Whole World": "0 0 1000 500",
+    Africa: "410 135 275 285",
+    Asia: "510 40 475 320",
+    Europe: "415 70 245 170",
+    "North America": "80 55 330 225",
+    "South America": "285 230 180 250",
+    Oceania: "705 220 340 210",
+  };
+  var smallCountryMarkers = {
+    and: { lon: 1.52, lat: 42.51 },
+    atg: { lon: -61.8, lat: 17.06 },
+    bhr: { lon: 50.56, lat: 26.07 },
+    brb: { lon: -59.54, lat: 13.19 },
+    cpv: { lon: -23.51, lat: 14.93 },
+    com: { lon: 43.33, lat: -11.65 },
+    dma: { lon: -61.37, lat: 15.42 },
+    grd: { lon: -61.68, lat: 12.12 },
+    kir: { lon: 173.0, lat: 1.87 },
+    lie: { lon: 9.56, lat: 47.17 },
+    mdv: { lon: 73.51, lat: 4.18 },
+    mhl: { lon: 171.18, lat: 7.13 },
+    mus: { lon: 57.5, lat: -20.2 },
+    fsm: { lon: 158.2, lat: 6.9 },
+    mco: { lon: 7.42, lat: 43.74 },
+    nru: { lon: 166.93, lat: -0.52 },
+    plw: { lon: 134.58, lat: 7.5 },
+    kna: { lon: -62.73, lat: 17.36 },
+    lca: { lon: -60.98, lat: 13.91 },
+    vct: { lon: -61.29, lat: 13.25 },
+    wsm: { lon: -172.1, lat: -13.76, wrapPacific: true },
+    smr: { lon: 12.46, lat: 43.94 },
+    stp: { lon: 6.61, lat: 0.19 },
+    syc: { lon: 55.45, lat: -4.68 },
+    sgp: { lon: 103.82, lat: 1.35 },
+    ton: { lon: -175.2, lat: -21.18, wrapPacific: true },
+    tuv: { lon: 179.19, lat: -8.52 },
+  };
   var state = {
     continent: "Whole World",
     populationTier: "all",
@@ -21,6 +62,7 @@
     answered: 0,
     streak: 0,
     bestStreak: 0,
+    mapStatusById: {},
   };
 
   var elements = {
@@ -37,12 +79,17 @@
     progressFill: document.getElementById("progress-fill"),
     levelBadge: document.getElementById("level-badge"),
     motivationText: document.getElementById("motivation-text"),
+    countryMap: document.getElementById("country-map"),
+    mapTitle: document.getElementById("map-title"),
+    mapDetail: document.getElementById("map-detail"),
     cardFrame: document.getElementById("card-frame"),
     flashcard: document.getElementById("flashcard"),
     promptLabel: document.getElementById("prompt-label"),
+    promptFlag: document.getElementById("prompt-flag"),
     promptText: document.getElementById("prompt-text"),
     promptHelper: document.getElementById("prompt-helper"),
     answerText: document.getElementById("answer-text"),
+    answerFlag: document.getElementById("answer-flag"),
     answerHelper: document.getElementById("answer-helper"),
     funFactText: document.getElementById("fun-fact-text"),
     typedAnswerForm: document.getElementById("typed-answer-form"),
@@ -83,6 +130,7 @@
   };
 
   function init() {
+    buildMapCache();
     renderContinentControls();
     renderPopulationControls();
     bindEvents();
@@ -171,6 +219,18 @@
     });
   }
 
+  function buildMapCache() {
+    var features = (window.WORLD_GEOJSON && window.WORLD_GEOJSON.features) || [];
+    features.forEach(function (feature) {
+      if (!feature.id) {
+        return;
+      }
+      var id = feature.id.toLowerCase();
+      mapPathById[id] = geometryToPath(feature.geometry);
+      mapCenterById[id] = getFeatureCenter(feature.geometry);
+    });
+  }
+
   function startRound() {
     state.deck = shuffle(getFilteredCards());
     state.deckIndex = 0;
@@ -179,6 +239,7 @@
     state.answered = 0;
     state.streak = 0;
     state.bestStreak = 0;
+    state.mapStatusById = {};
     elements.feedbackText.textContent = "";
     elements.motivationText.textContent = randomItem(encouragement.start);
     nextCard();
@@ -218,6 +279,7 @@
     elements.showAnswerButton.disabled = false;
     renderCard();
     renderAnswerControls();
+    renderMap();
     updateStats();
 
     if (state.answerStyle === "type") {
@@ -237,12 +299,15 @@
     elements.answerText.textContent = "Adjust filters";
     elements.answerHelper.textContent = "This deck has no countries in that combination.";
     elements.funFactText.textContent = "Well known is 50m-plus people, medium is about 5m to 50m, and niche is under about 5m.";
+    elements.promptFlag.textContent = "";
+    elements.answerFlag.textContent = "";
     elements.feedbackText.textContent = "";
     elements.typedAnswerInput.value = "";
     elements.typedAnswerInput.disabled = true;
     elements.nextButton.disabled = true;
     elements.showAnswerButton.disabled = true;
     elements.choiceAnswer.innerHTML = "";
+    renderMap();
   }
 
   function getPromptType() {
@@ -257,8 +322,12 @@
     var prompt = isCountryPrompt ? state.current.country : state.current.capital;
     var answer = isCountryPrompt ? state.current.capital : state.current.country;
     elements.promptLabel.textContent = isCountryPrompt ? "Country" : "Capital";
+    elements.promptFlag.textContent = state.current.flagEmoji || "";
+    elements.promptFlag.setAttribute("title", state.current.country + " flag");
     elements.promptText.textContent = prompt;
     elements.promptHelper.textContent = isCountryPrompt ? "Name the capital." : "Name the country.";
+    elements.answerFlag.textContent = state.current.flagEmoji || "";
+    elements.answerFlag.setAttribute("title", state.current.country + " flag");
     elements.answerText.textContent = answer;
     elements.answerHelper.textContent = isCountryPrompt
       ? state.current.country + " -> " + state.current.capital
@@ -268,6 +337,197 @@
 
   function getFallbackFact(card) {
     return card.capital + " is the capital of " + card.country + ", one of the UN member states in " + card.continent + ".";
+  }
+
+  function renderMap() {
+    if (!elements.countryMap) {
+      return;
+    }
+
+    var mapCards = getGeographicCards();
+    var deckIds = getFilteredCards().reduce(function (lookup, card) {
+      lookup[card.id] = true;
+      return lookup;
+    }, {});
+    elements.countryMap.innerHTML = "";
+    elements.countryMap.setAttribute("viewBox", mapViewBoxes[state.continent] || mapViewBoxes["Whole World"]);
+    elements.mapTitle.textContent = state.continent === "Whole World" ? "World map" : state.continent + " map";
+    elements.mapDetail.textContent = getMapDetail();
+
+    mapCards.forEach(function (card) {
+      var status = getMapStatus(card);
+      var isInDeck = Boolean(deckIds[card.id]);
+      if (mapPathById[card.id]) {
+        renderMapPath(card, status, isInDeck);
+      } else {
+        renderMapMarker(card, status, isInDeck);
+      }
+    });
+
+    renderCurrentMapPulse();
+  }
+
+  function getGeographicCards() {
+    if (state.continent === "Whole World") {
+      return cards;
+    }
+    return cards.filter(function (card) {
+      return card.continent === state.continent;
+    });
+  }
+
+  function getMapDetail() {
+    if (!state.deck.length) {
+      return "No countries match those filters.";
+    }
+    if (!state.current) {
+      return "Countries light up as you answer.";
+    }
+    if (!state.hasAnswered) {
+      return "Asked now: " + state.current.country + " turns grey.";
+    }
+    var status = state.mapStatusById[state.current.id] === "correct" ? "green" : "red";
+    return state.current.country + " is now " + status + ".";
+  }
+
+  function getMapStatus(card) {
+    if (state.current && !state.hasAnswered && state.current.id === card.id) {
+      return "current";
+    }
+    return state.mapStatusById[card.id] || "idle";
+  }
+
+  function renderMapPath(card, status, isInDeck) {
+    var path = document.createElementNS(svgNamespace, "path");
+    path.setAttribute("d", mapPathById[card.id]);
+    path.setAttribute("fill-rule", "evenodd");
+    path.setAttribute("class", getMapClassName("map-country", status, isInDeck));
+    path.setAttribute("aria-label", getMapAriaLabel(card, status));
+    elements.countryMap.appendChild(path);
+  }
+
+  function renderMapMarker(card, status, isInDeck) {
+    var point = getMapPoint(card);
+    if (!point) {
+      return;
+    }
+    var marker = document.createElementNS(svgNamespace, "circle");
+    marker.setAttribute("cx", point.x.toFixed(2));
+    marker.setAttribute("cy", point.y.toFixed(2));
+    marker.setAttribute("r", getMarkerRadius(card));
+    marker.setAttribute("class", getMapClassName("map-marker", status, isInDeck));
+    marker.setAttribute("aria-label", getMapAriaLabel(card, status));
+    elements.countryMap.appendChild(marker);
+  }
+
+  function renderCurrentMapPulse() {
+    if (!state.current || state.hasAnswered) {
+      return;
+    }
+    var point = getMapPoint(state.current);
+    if (!point) {
+      return;
+    }
+    var pulse = document.createElementNS(svgNamespace, "circle");
+    pulse.setAttribute("cx", point.x.toFixed(2));
+    pulse.setAttribute("cy", point.y.toFixed(2));
+    pulse.setAttribute("r", "10");
+    pulse.setAttribute("class", "map-pulse");
+    elements.countryMap.appendChild(pulse);
+  }
+
+  function getMapClassName(baseClass, status, isInDeck) {
+    return [
+      baseClass,
+      "map-status-" + status,
+      isInDeck ? "in-deck" : "not-in-deck",
+    ].join(" ");
+  }
+
+  function getMapAriaLabel(card, status) {
+    var label = status === "idle" ? "not answered yet" : status;
+    return card.country + " map status: " + label;
+  }
+
+  function getMapPoint(card) {
+    var marker = smallCountryMarkers[card.id];
+    if (marker) {
+      return projectCoordinate(marker.lon, marker.lat, marker.wrapPacific);
+    }
+    return mapCenterById[card.id] || null;
+  }
+
+  function getMarkerRadius(card) {
+    if (state.current && state.current.id === card.id) {
+      return "5.6";
+    }
+    return state.continent === "Whole World" ? "4.4" : "3.2";
+  }
+
+  function geometryToPath(geometry) {
+    if (!geometry) {
+      return "";
+    }
+    if (geometry.type === "Polygon") {
+      return polygonToPath(geometry.coordinates);
+    }
+    if (geometry.type === "MultiPolygon") {
+      return geometry.coordinates.map(polygonToPath).join(" ");
+    }
+    return "";
+  }
+
+  function polygonToPath(polygon) {
+    return polygon.map(ringToPath).join(" ");
+  }
+
+  function ringToPath(ring) {
+    return ring.map(function (coordinate, index) {
+      var point = projectCoordinate(coordinate[0], coordinate[1], false);
+      return (index === 0 ? "M" : "L") + point.x.toFixed(2) + " " + point.y.toFixed(2);
+    }).join(" ") + "Z";
+  }
+
+  function getFeatureCenter(geometry) {
+    var bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+    visitCoordinates(geometry && geometry.coordinates, function (coordinate) {
+      var point = projectCoordinate(coordinate[0], coordinate[1], false);
+      bounds.minX = Math.min(bounds.minX, point.x);
+      bounds.minY = Math.min(bounds.minY, point.y);
+      bounds.maxX = Math.max(bounds.maxX, point.x);
+      bounds.maxY = Math.max(bounds.maxY, point.y);
+    });
+    if (!Number.isFinite(bounds.minX)) {
+      return null;
+    }
+    return {
+      x: (bounds.minX + bounds.maxX) / 2,
+      y: (bounds.minY + bounds.maxY) / 2,
+    };
+  }
+
+  function visitCoordinates(value, callback) {
+    if (!Array.isArray(value)) {
+      return;
+    }
+    if (typeof value[0] === "number" && typeof value[1] === "number") {
+      callback(value);
+      return;
+    }
+    value.forEach(function (item) {
+      visitCoordinates(item, callback);
+    });
+  }
+
+  function projectCoordinate(lon, lat, wrapPacific) {
+    var projectedLon = lon;
+    if (wrapPacific && state.continent === "Oceania" && projectedLon < 0) {
+      projectedLon += 360;
+    }
+    return {
+      x: ((projectedLon + 180) / 360) * 1000,
+      y: ((90 - lat) / 180) * 500,
+    };
   }
 
   function renderAnswerControls() {
@@ -369,6 +629,7 @@
   function resolveAnswer(isCorrect, wasRevealed, choiceButton) {
     state.hasAnswered = true;
     state.answered += 1;
+    state.mapStatusById[state.current.id] = isCorrect ? "correct" : "wrong";
     elements.cardFrame.classList.add("answered");
     elements.typedAnswerInput.disabled = true;
     elements.nextButton.disabled = false;
@@ -396,6 +657,7 @@
     }
 
     updateStats();
+    renderMap();
   }
 
   function disableChoices() {

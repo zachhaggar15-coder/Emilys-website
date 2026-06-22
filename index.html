@@ -83,21 +83,47 @@
       </section>
 
       <section class="study-layout">
-        <aside class="progress-panel" aria-label="Round progress">
-          <div class="level-badge" id="level-badge">Map Starter</div>
-          <div class="progress-copy">
-            <span id="deck-count">193 cards</span>
-            <span id="answered-count">0 answered</span>
-          </div>
-          <div class="progress-track" aria-hidden="true">
-            <span id="progress-fill"></span>
-          </div>
-          <p class="motivation" id="motivation-text" aria-live="polite">
-            Choose your deck and start the streak.
-          </p>
-          <div class="mini-tip">
-            Session progress resets when you refresh the page.
-          </div>
+        <aside class="side-panel">
+          <section class="progress-panel" aria-label="Round progress">
+            <div class="level-badge" id="level-badge">Map Starter</div>
+            <div class="progress-copy">
+              <span id="deck-count">193 cards</span>
+              <span id="answered-count">0 answered</span>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+              <span id="progress-fill"></span>
+            </div>
+            <p class="motivation" id="motivation-text" aria-live="polite">
+              Choose your deck and start the streak.
+            </p>
+            <div class="mini-tip">
+              Session progress resets when you refresh the page.
+            </div>
+          </section>
+
+          <section class="map-panel" aria-labelledby="map-title">
+            <div class="map-panel-header">
+              <div>
+                <span class="control-label">Map tracker</span>
+                <h2 id="map-title">World map</h2>
+              </div>
+              <span class="map-detail" id="map-detail">Countries light up as you answer.</span>
+            </div>
+            <div class="map-shell">
+              <svg
+                id="country-map"
+                viewBox="0 0 1000 500"
+                preserveAspectRatio="xMidYMid meet"
+                role="img"
+                aria-labelledby="map-title map-detail"
+              ></svg>
+            </div>
+            <div class="map-legend" aria-label="Map color legend">
+              <span><i class="legend-swatch is-current"></i>Asked now</span>
+              <span><i class="legend-swatch is-correct"></i>Correct</span>
+              <span><i class="legend-swatch is-wrong"></i>Wrong</span>
+            </div>
+          </section>
         </aside>
 
         <section class="card-stage" aria-label="Current flashcard">
@@ -105,11 +131,17 @@
             <div class="flashcard" id="flashcard">
               <div class="card-face card-front">
                 <span class="card-kicker" id="prompt-label">Country</span>
+                <div class="flag-display" aria-label="Country flag">
+                  <span id="prompt-flag" class="flag-symbol"></span>
+                </div>
                 <h2 id="prompt-text">Loading...</h2>
                 <p id="prompt-helper">Name the capital.</p>
               </div>
               <div class="card-face card-back">
                 <span class="card-kicker">Answer</span>
+                <div class="flag-display" aria-label="Country flag">
+                  <span id="answer-flag" class="flag-symbol"></span>
+                </div>
                 <h2 id="answer-text">Loading...</h2>
                 <p id="answer-helper">Pair locked in.</p>
                 <div class="fun-fact">
@@ -155,6 +187,8 @@
     <script src="data.js"></script>
     <script src="population.js"></script>
     <script src="facts.js"></script>
+    <script src="flags.js"></script>
+    <script src="world-map.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
