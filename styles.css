@@ -33,6 +33,10 @@ body {
     var(--cloud);
 }
 
+.flag-symbol {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+}
+
 .opening-splash {
   position: fixed;
   inset: 0;
@@ -577,6 +581,7 @@ button:focus-visible {
 .flag-symbol {
   font-size: 3.2rem;
   line-height: 1;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
 }
 
 .card-face h2 {
@@ -852,6 +857,7 @@ button:focus-visible {
 
   .flag-symbol {
     font-size: 2.6rem;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
   }
 
   .card-face h2 {
