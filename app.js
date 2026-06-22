@@ -299,8 +299,8 @@
     elements.answerText.textContent = "Adjust filters";
     elements.answerHelper.textContent = "This deck has no countries in that combination.";
     elements.funFactText.textContent = "Well known is 50m-plus people, medium is about 5m to 50m, and niche is under about 5m.";
-    elements.promptFlag.textContent = "";
-    elements.answerFlag.textContent = "";
+    elements.promptFlag.className = "flag-symbol";
+    elements.answerFlag.className = "flag-symbol";
     elements.feedbackText.textContent = "";
     elements.typedAnswerInput.value = "";
     elements.typedAnswerInput.disabled = true;
@@ -322,11 +322,11 @@
     var prompt = isCountryPrompt ? state.current.country : state.current.capital;
     var answer = isCountryPrompt ? state.current.capital : state.current.country;
     elements.promptLabel.textContent = isCountryPrompt ? "Country" : "Capital";
-    elements.promptFlag.textContent = state.current.flagEmoji || "";
+    elements.promptFlag.className = "flag-symbol " + (state.current.flagClass || "");
     elements.promptFlag.setAttribute("title", state.current.country + " flag");
     elements.promptText.textContent = prompt;
     elements.promptHelper.textContent = isCountryPrompt ? "Name the capital." : "Name the country.";
-    elements.answerFlag.textContent = state.current.flagEmoji || "";
+    elements.answerFlag.className = "flag-symbol " + (state.current.flagClass || "");
     elements.answerFlag.setAttribute("title", state.current.country + " flag");
     elements.answerText.textContent = answer;
     elements.answerHelper.textContent = isCountryPrompt

@@ -212,6 +212,7 @@
       var flagCode = iso2ByIso3[card.id] || "";
       card.flagCode = flagCode;
       card.flagEmoji = flagCode ? toFlagEmoji(flagCode) : "";
+      card.flagClass = flagCode ? "fi fi-" + flagCode.toLowerCase() : "";
     });
   }
 })();
