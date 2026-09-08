@@ -7,6 +7,17 @@
     { label: "Medium", value: "medium" },
     { label: "Niche", value: "niche" },
   ];
+  var sessionModes = [
+    { label: "Practice", value: "practice" },
+    { label: "Daily challenge", value: "challenge" },
+    { label: "Review mistakes", value: "review" },
+  ];
+  var timerOptions = {
+    off: 0,
+    "30": 30,
+    "60": 60,
+  };
+  var challengeSize = 10;
   var mapPathById = {};
   var mapCenterById = {};
   var svgNamespace = "http://www.w3.org/2000/svg";
@@ -52,7 +63,13 @@
     continent: "Whole World",
     populationTier: "all",
     mode: "country-to-capital",
+    sessionMode: "practice",
     answerStyle: "type",
+    timerMode: "off",
+    timerRemaining: 0,
+    timerId: null,
+    roundEnded: false,
+    hintShown: false,
     deck: [],
     deckIndex: 0,
     current: null,
@@ -63,25 +80,37 @@
     streak: 0,
     bestStreak: 0,
     mapStatusById: {},
+    mistakeIds: {},
+    history: [],
+    correctByContinent: {},
+    perfectChallengeEarned: false,
+    mapCollapsed: false,
   };
 
   var elements = {
     continentControls: document.getElementById("continent-controls"),
     populationControls: document.getElementById("population-controls"),
+    sessionControls: document.getElementById("session-controls"),
     modeSelect: document.getElementById("mode-select"),
     answerStyleSelect: document.getElementById("answer-style-select"),
+    timerSelect: document.getElementById("timer-select"),
     restartButton: document.getElementById("restart-button"),
     scoreValue: document.getElementById("score-value"),
     streakValue: document.getElementById("streak-value"),
     bestStreakValue: document.getElementById("best-streak-value"),
     deckCount: document.getElementById("deck-count"),
     answeredCount: document.getElementById("answered-count"),
+    timerPill: document.getElementById("timer-pill"),
+    timerValue: document.getElementById("timer-value"),
     progressFill: document.getElementById("progress-fill"),
     levelBadge: document.getElementById("level-badge"),
+    badgeRack: document.getElementById("badge-rack"),
     motivationText: document.getElementById("motivation-text"),
+    mapPanel: document.querySelector(".map-panel"),
     countryMap: document.getElementById("country-map"),
     mapTitle: document.getElementById("map-title"),
     mapDetail: document.getElementById("map-detail"),
+    mapToggleButton: document.getElementById("map-toggle-button"),
     cardFrame: document.getElementById("card-frame"),
     flashcard: document.getElementById("flashcard"),
     promptLabel: document.getElementById("prompt-label"),
@@ -96,8 +125,20 @@
     typedAnswerInput: document.getElementById("typed-answer-input"),
     choiceAnswer: document.getElementById("choice-answer"),
     feedbackText: document.getElementById("feedback-text"),
+    hintButton: document.getElementById("hint-button"),
     showAnswerButton: document.getElementById("show-answer-button"),
     nextButton: document.getElementById("next-button"),
+    countrySearchInput: document.getElementById("country-search-input"),
+    countryListCount: document.getElementById("country-list-count"),
+    countryList: document.getElementById("country-list"),
+    roundSummary: document.getElementById("round-summary"),
+    summaryTitle: document.getElementById("summary-title"),
+    summaryCopy: document.getElementById("summary-copy"),
+    summaryStats: document.getElementById("summary-stats"),
+    summaryMissedList: document.getElementById("summary-missed-list"),
+    summaryCloseButton: document.getElementById("summary-close-button"),
+    summaryReviewButton: document.getElementById("summary-review-button"),
+    summaryNewRoundButton: document.getElementById("summary-new-round-button"),
     celebrationLayer: document.getElementById("celebration-layer"),
     openingSplash: document.getElementById("opening-splash"),
   };
@@ -133,8 +174,11 @@
     buildMapCache();
     renderContinentControls();
     renderPopulationControls();
+    renderSessionControls();
     bindEvents();
     scheduleOpeningSplash();
+    renderMapCollapseState();
+    renderCountryBrowser();
     startRound();
   }
 
@@ -149,6 +193,11 @@
       startRound();
     });
 
+    elements.timerSelect.addEventListener("change", function (event) {
+      state.timerMode = event.target.value;
+      startRound();
+    });
+
     elements.restartButton.addEventListener("click", startRound);
 
     elements.typedAnswerForm.addEventListener("submit", function (event) {
@@ -160,6 +209,8 @@
       checkTypedAnswer();
     });
 
+    elements.hintButton.addEventListener("click", showHint);
+
     elements.showAnswerButton.addEventListener("click", function () {
       if (!state.current || state.hasAnswered) {
         return;
@@ -168,6 +219,25 @@
     });
 
     elements.nextButton.addEventListener("click", nextCard);
+
+    elements.countrySearchInput.addEventListener("input", renderCountryBrowser);
+
+    elements.mapToggleButton.addEventListener("click", function () {
+      state.mapCollapsed = !state.mapCollapsed;
+      renderMapCollapseState();
+    });
+
+    elements.summaryCloseButton.addEventListener("click", closeRoundSummary);
+    elements.summaryNewRoundButton.addEventListener("click", function () {
+      closeRoundSummary();
+      startRound();
+    });
+    elements.summaryReviewButton.addEventListener("click", function () {
+      state.sessionMode = "review";
+      closeRoundSummary();
+      updateActiveSessionMode();
+      startRound();
+    });
   }
 
   function renderContinentControls() {
@@ -204,6 +274,25 @@
     });
   }
 
+  function renderSessionControls() {
+    elements.sessionControls.innerHTML = "";
+    sessionModes.forEach(function (mode) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "chip";
+      button.dataset.value = mode.value;
+      button.dataset.label = mode.label;
+      button.textContent = getSessionModeLabel(mode);
+      button.setAttribute("aria-pressed", String(mode.value === state.sessionMode));
+      button.addEventListener("click", function () {
+        state.sessionMode = mode.value;
+        updateActiveSessionMode();
+        startRound();
+      });
+      elements.sessionControls.appendChild(button);
+    });
+  }
+
   function updateActiveContinent() {
     Array.prototype.forEach.call(elements.continentControls.children, function (button) {
       button.setAttribute("aria-pressed", String(button.textContent === state.continent));
@@ -219,6 +308,23 @@
     });
   }
 
+  function updateActiveSessionMode() {
+    Array.prototype.forEach.call(elements.sessionControls.children, function (button) {
+      var mode = sessionModes.find(function (item) {
+        return item.value === button.dataset.value;
+      });
+      button.textContent = mode ? getSessionModeLabel(mode) : button.dataset.label;
+      button.setAttribute("aria-pressed", String(button.dataset.value === state.sessionMode));
+    });
+  }
+
+  function getSessionModeLabel(mode) {
+    if (mode.value === "review") {
+      return mode.label + " (" + getMistakeCount() + ")";
+    }
+    return mode.label;
+  }
+
   function buildMapCache() {
     var features = (window.WORLD_GEOJSON && window.WORLD_GEOJSON.features) || [];
     features.forEach(function (feature) {
@@ -232,17 +338,27 @@
   }
 
   function startRound() {
-    state.deck = shuffle(getFilteredCards());
+    clearTimer();
+    state.deck = getRoundDeck();
     state.deckIndex = 0;
     state.hasAnswered = false;
+    state.roundEnded = false;
+    state.hintShown = false;
     state.score = 0;
     state.answered = 0;
     state.streak = 0;
     state.bestStreak = 0;
     state.mapStatusById = {};
+    state.history = [];
+    state.timerRemaining = timerOptions[state.timerMode] || 0;
     elements.feedbackText.textContent = "";
     elements.motivationText.textContent = randomItem(encouragement.start);
     nextCard();
+    if (state.deck.length && state.timerRemaining > 0) {
+      startTimer();
+    }
+    updateActiveSessionMode();
+    renderCountryBrowser();
     updateStats();
   }
 
@@ -254,7 +370,37 @@
     });
   }
 
+  function getRoundDeck() {
+    var filteredCards = getFilteredCards();
+    if (state.sessionMode === "review") {
+      return shuffle(filteredCards.filter(function (card) {
+        return Boolean(state.mistakeIds[card.id]);
+      }));
+    }
+    if (state.sessionMode === "challenge") {
+      return seededShuffle(filteredCards, getDailySeed()).slice(0, Math.min(challengeSize, filteredCards.length));
+    }
+    return shuffle(filteredCards);
+  }
+
+  function getAvailableRoundCardCount() {
+    var filteredCards = getFilteredCards();
+    if (state.sessionMode === "review") {
+      return filteredCards.filter(function (card) {
+        return Boolean(state.mistakeIds[card.id]);
+      }).length;
+    }
+    if (state.sessionMode === "challenge") {
+      return Math.min(challengeSize, filteredCards.length);
+    }
+    return filteredCards.length;
+  }
+
   function nextCard() {
+    if (state.roundEnded) {
+      return;
+    }
+
     if (!state.deck.length) {
       renderEmptyDeck();
       updateStats();
@@ -262,6 +408,10 @@
     }
 
     if (state.deckIndex >= state.deck.length) {
+      if (isFiniteRound()) {
+        endRound("complete");
+        return;
+      }
       state.deck = shuffle(state.deck);
       state.deckIndex = 0;
     }
@@ -269,13 +419,17 @@
     state.current = state.deck[state.deckIndex];
     state.deckIndex += 1;
     state.hasAnswered = false;
+    state.hintShown = false;
     state.promptType = getPromptType();
 
     elements.cardFrame.classList.remove("answered", "is-correct", "is-wrong");
+    elements.cardFrame.classList.toggle("is-flag-mode", state.promptType === "flag");
     elements.feedbackText.textContent = "";
     elements.typedAnswerInput.value = "";
     elements.typedAnswerInput.disabled = false;
+    elements.hintButton.disabled = false;
     elements.nextButton.disabled = true;
+    elements.nextButton.textContent = "Next card";
     elements.showAnswerButton.disabled = false;
     renderCard();
     renderAnswerControls();
@@ -292,10 +446,19 @@
   function renderEmptyDeck() {
     state.current = null;
     state.hasAnswered = false;
-    elements.cardFrame.classList.remove("answered", "is-correct", "is-wrong");
+    elements.cardFrame.classList.remove("answered", "is-correct", "is-wrong", "is-flag-mode");
     elements.promptLabel.textContent = "No cards";
-    elements.promptText.textContent = "No matches";
-    elements.promptHelper.textContent = "Try another well-known level or continent.";
+    if (state.sessionMode === "review") {
+      elements.promptText.textContent = getMistakeCount()
+        ? "No matching mistakes"
+        : "No mistakes yet";
+      elements.promptHelper.textContent = getMistakeCount()
+        ? "Try reviewing all continents or another well-known level."
+        : "Miss or reveal a card, then come back here for targeted practice.";
+    } else {
+      elements.promptText.textContent = "No matches";
+      elements.promptHelper.textContent = "Try another well-known level or continent.";
+    }
     elements.answerText.textContent = "Adjust filters";
     elements.answerHelper.textContent = "This deck has no countries in that combination.";
     elements.funFactText.textContent = "Well known is 50m-plus people, medium is about 5m to 50m, and niche is under about 5m.";
@@ -307,12 +470,19 @@
     elements.typedAnswerInput.value = "";
     elements.typedAnswerInput.disabled = true;
     elements.nextButton.disabled = true;
+    elements.nextButton.textContent = "Next card";
+    elements.hintButton.disabled = true;
     elements.showAnswerButton.disabled = true;
     elements.choiceAnswer.innerHTML = "";
+    renderTimer();
+    renderBadges();
     renderMap();
   }
 
   function getPromptType() {
+    if (state.mode === "flag-to-country") {
+      return "flag";
+    }
     if (state.mode === "mixed") {
       return Math.random() > 0.5 ? "country" : "capital";
     }
@@ -321,31 +491,45 @@
 
   function renderCard() {
     var isCountryPrompt = state.promptType === "country";
-    var prompt = isCountryPrompt ? state.current.country : state.current.capital;
+    var isCapitalPrompt = state.promptType === "capital";
+    var isFlagPrompt = state.promptType === "flag";
+    var prompt = isCountryPrompt
+      ? state.current.country
+      : isCapitalPrompt
+        ? state.current.capital
+        : "Which country uses this flag?";
     var answer = isCountryPrompt ? state.current.capital : state.current.country;
-    elements.promptLabel.textContent = isCountryPrompt ? "Country" : "Capital";
+    elements.promptLabel.textContent = isCountryPrompt ? "Country" : isFlagPrompt ? "Flag" : "Capital";
     elements.promptFlag.className = "flag-symbol";
     elements.promptFlag.setAttribute("title", state.current.country + " flag");
-    // Prefer an SVG image from FlagCDN for reliable rendering; fall back to emoji
-    if (state.current.flagUrl) {
-      elements.promptFlag.innerHTML = '<img src="' + state.current.flagUrl + '" alt="' + state.current.country + ' flag" class="flag-img" loading="lazy">';
-    } else {
-      elements.promptFlag.innerHTML = state.current.flagEmoji || "";
-    }
+    elements.promptFlag.innerHTML = getFlagMarkup(state.current);
     elements.promptText.textContent = prompt;
-    elements.promptHelper.textContent = isCountryPrompt ? "Name the capital." : "Name the country.";
+    elements.promptHelper.textContent = isCountryPrompt
+      ? "Name the capital."
+      : "Name the country.";
     elements.answerFlag.className = "flag-symbol";
     elements.answerFlag.setAttribute("title", state.current.country + " flag");
-    if (state.current.flagUrl) {
-      elements.answerFlag.innerHTML = '<img src="' + state.current.flagUrl + '" alt="' + state.current.country + ' flag" class="flag-img" loading="lazy">';
-    } else {
-      elements.answerFlag.innerHTML = state.current.flagEmoji || "";
-    }
+    elements.answerFlag.innerHTML = getFlagMarkup(state.current);
     elements.answerText.textContent = answer;
-    elements.answerHelper.textContent = isCountryPrompt
+    elements.answerHelper.textContent = isCountryPrompt || isFlagPrompt
       ? state.current.country + " -> " + state.current.capital
       : state.current.capital + " -> " + state.current.country;
     elements.funFactText.textContent = state.current.fact || getFallbackFact(state.current);
+  }
+
+  function getFlagMarkup(card) {
+    if (card.flagUrl) {
+      return '<img src="' + escapeHtml(card.flagUrl) + '" alt="' + escapeHtml(card.country) + ' flag" class="flag-img" loading="lazy">';
+    }
+    return escapeHtml(card.flagEmoji || "");
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   function getFallbackFact(card) {
@@ -358,7 +542,8 @@
     }
 
     var mapCards = getGeographicCards();
-    var deckIds = getFilteredCards().reduce(function (lookup, card) {
+    var activeDeckCards = state.deck.length || isFiniteRound() ? state.deck : getFilteredCards();
+    var deckIds = activeDeckCards.reduce(function (lookup, card) {
       lookup[card.id] = true;
       return lookup;
     }, {});
@@ -396,15 +581,18 @@
     if (!state.current) {
       return "Countries light up as you answer.";
     }
+    if (state.roundEnded) {
+      return "Round complete. Green countries were correct; red ones need review.";
+    }
     if (!state.hasAnswered) {
-      return "Asked now: " + state.current.country + " turns grey.";
+      return "Asked now: " + state.current.country + " turns grey and gets a label.";
     }
     var status = state.mapStatusById[state.current.id] === "correct" ? "green" : "red";
     return state.current.country + " is now " + status + ".";
   }
 
   function getMapStatus(card) {
-    if (state.current && !state.hasAnswered && state.current.id === card.id) {
+    if (state.current && !state.roundEnded && !state.hasAnswered && state.current.id === card.id) {
       return "current";
     }
     return state.mapStatusById[card.id] || "idle";
@@ -416,6 +604,7 @@
     path.setAttribute("fill-rule", "evenodd");
     path.setAttribute("class", getMapClassName("map-country", status, isInDeck));
     path.setAttribute("aria-label", getMapAriaLabel(card, status));
+    path.appendChild(getMapTitle(card, status));
     elements.countryMap.appendChild(path);
   }
 
@@ -430,6 +619,7 @@
     marker.setAttribute("r", getMarkerRadius(card));
     marker.setAttribute("class", getMapClassName("map-marker", status, isInDeck));
     marker.setAttribute("aria-label", getMapAriaLabel(card, status));
+    marker.appendChild(getMapTitle(card, status));
     elements.countryMap.appendChild(marker);
   }
 
@@ -447,6 +637,36 @@
     pulse.setAttribute("r", "10");
     pulse.setAttribute("class", "map-pulse");
     elements.countryMap.appendChild(pulse);
+    renderCurrentMapLabel(point);
+  }
+
+  function renderCurrentMapLabel(point) {
+    var label = document.createElementNS(svgNamespace, "text");
+    var useLeftSide = point.x > 820;
+    var x = useLeftSide ? point.x - 12 : point.x + 12;
+    var y = point.y < 42 ? point.y + 22 : point.y - 12;
+    label.textContent = state.current.country;
+    label.setAttribute("x", clamp(x, 20, 980).toFixed(2));
+    label.setAttribute("y", clamp(y, 24, 480).toFixed(2));
+    label.setAttribute("text-anchor", useLeftSide ? "end" : "start");
+    label.setAttribute("class", "map-label");
+    elements.countryMap.appendChild(label);
+  }
+
+  function getMapTitle(card, status) {
+    var title = document.createElementNS(svgNamespace, "title");
+    title.textContent = getMapAriaLabel(card, status);
+    return title;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function renderMapCollapseState() {
+    elements.mapPanel.classList.toggle("is-collapsed", state.mapCollapsed);
+    elements.mapToggleButton.textContent = state.mapCollapsed ? "Show map" : "Hide map";
+    elements.mapToggleButton.setAttribute("aria-expanded", String(!state.mapCollapsed));
   }
 
   function getMapClassName(baseClass, status, isInDeck) {
@@ -572,7 +792,7 @@
   }
 
   function getChoices() {
-    var answerKey = state.promptType === "country" ? "capital" : "country";
+    var answerKey = getAnswerKey();
     var correctLabel = state.current[answerKey];
     var pool = shuffle(getFilteredCards().filter(function (card) {
       return card.id !== state.current.id;
@@ -609,7 +829,7 @@
   }
 
   function isExpectedAnswer(value) {
-    var answerType = state.promptType === "country" ? "capital" : "country";
+    var answerType = getAnswerKey();
     var accepted = [state.current[answerType]].concat(state.current[answerType + "Aliases"] || []);
     return accepted.some(function (answer) {
       return answersMatch(value, answer);
@@ -640,12 +860,29 @@
   }
 
   function resolveAnswer(isCorrect, wasRevealed, choiceButton) {
+    if (!state.current || state.hasAnswered || state.roundEnded) {
+      return;
+    }
+
     state.hasAnswered = true;
     state.answered += 1;
     state.mapStatusById[state.current.id] = isCorrect ? "correct" : "wrong";
+    state.history.push({
+      id: state.current.id,
+      country: state.current.country,
+      capital: state.current.capital,
+      continent: state.current.continent,
+      expected: getExpectedAnswer(),
+      promptType: state.promptType,
+      correct: isCorrect,
+      revealed: wasRevealed,
+      hintUsed: state.hintShown,
+    });
     elements.cardFrame.classList.add("answered");
     elements.typedAnswerInput.disabled = true;
     elements.nextButton.disabled = false;
+    elements.nextButton.textContent = isFiniteRound() && state.deckIndex >= state.deck.length ? "See results" : "Next card";
+    elements.hintButton.disabled = true;
     elements.showAnswerButton.disabled = true;
     disableChoices();
 
@@ -653,6 +890,8 @@
       state.score += 1;
       state.streak += 1;
       state.bestStreak = Math.max(state.bestStreak, state.streak);
+      delete state.mistakeIds[state.current.id];
+      state.correctByContinent[state.current.continent] = (state.correctByContinent[state.current.continent] || 0) + 1;
       elements.cardFrame.classList.add("is-correct");
       elements.feedbackText.textContent = getCorrectMessage();
       elements.motivationText.textContent = getStreakMessage();
@@ -662,6 +901,7 @@
       }
     } else {
       state.streak = 0;
+      state.mistakeIds[state.current.id] = true;
       elements.cardFrame.classList.add("is-wrong");
       elements.feedbackText.textContent = wasRevealed ? "Revealed. Study the pair, then take the next card." : getWrongMessage();
       elements.motivationText.textContent = "Answer: " + getExpectedAnswer() + ". Keep going.";
@@ -670,7 +910,284 @@
     }
 
     updateStats();
+    updateActiveSessionMode();
+    renderCountryBrowser();
     renderMap();
+  }
+
+  function showHint() {
+    if (!state.current || state.hasAnswered || state.roundEnded || state.hintShown) {
+      return;
+    }
+
+    state.hintShown = true;
+    elements.hintButton.disabled = true;
+    elements.feedbackText.textContent = "Hint: " + getHintText(getExpectedAnswer());
+  }
+
+  function getHintText(answer) {
+    var answerLabel = getAnswerKey() === "capital" ? "capital" : "country";
+    var firstCharacter = String(answer).trim().charAt(0).toUpperCase();
+    var letterCount = String(answer)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Za-z]/g, "").length;
+    var placeClue = getAnswerKey() === "capital"
+      ? "It belongs to a country in " + state.current.continent + "."
+      : "It is in " + state.current.continent + ".";
+
+    return "The " + answerLabel + " starts with " + firstCharacter + " and has " + letterCount + " letters. " + placeClue;
+  }
+
+  function isFiniteRound() {
+    return state.sessionMode === "challenge" || state.sessionMode === "review";
+  }
+
+  function endRound(reason) {
+    if (state.roundEnded) {
+      return;
+    }
+
+    state.roundEnded = true;
+    clearTimer();
+    elements.typedAnswerInput.disabled = true;
+    elements.nextButton.disabled = true;
+    elements.nextButton.textContent = "Next card";
+    elements.hintButton.disabled = true;
+    elements.showAnswerButton.disabled = true;
+    disableChoices();
+
+    if (state.sessionMode === "challenge" && state.deck.length && state.score === state.deck.length) {
+      state.perfectChallengeEarned = true;
+      celebrate();
+    }
+
+    elements.feedbackText.textContent = reason === "time"
+      ? "Time is up. Your round summary is ready."
+      : "Round complete. Your summary is ready.";
+    updateStats();
+    updateActiveSessionMode();
+    renderCountryBrowser();
+    renderMap();
+    openRoundSummary(reason);
+  }
+
+  function openRoundSummary(reason) {
+    var total = state.history.length;
+    var missed = state.history.filter(function (answer) {
+      return !answer.correct;
+    });
+    var hintsUsed = state.history.filter(function (answer) {
+      return answer.hintUsed;
+    }).length;
+    var accuracy = total ? Math.round((state.score / total) * 100) : 0;
+
+    elements.summaryTitle.textContent = reason === "time" ? "Sprint finished" : "Round complete";
+    elements.summaryCopy.textContent = getSummaryCopy(total, missed.length, reason);
+    elements.summaryStats.innerHTML = [
+      getSummaryStatMarkup("Correct", state.score),
+      getSummaryStatMarkup("Accuracy", accuracy + "%"),
+      getSummaryStatMarkup("Best streak", state.bestStreak),
+      getSummaryStatMarkup("Hints", hintsUsed),
+    ].join("");
+
+    elements.summaryMissedList.innerHTML = "";
+    if (!missed.length) {
+      var emptyItem = document.createElement("li");
+      emptyItem.className = "summary-empty";
+      emptyItem.textContent = total ? "No misses this round." : "No answered cards yet. Start another round when you are ready.";
+      elements.summaryMissedList.appendChild(emptyItem);
+    } else {
+      missed.forEach(function (answer) {
+        var item = document.createElement("li");
+        item.innerHTML =
+          "<strong>" + escapeHtml(answer.country) + "</strong>" +
+          "<span>" + escapeHtml(answer.country) + " -> " + escapeHtml(answer.capital) + "</span>";
+        elements.summaryMissedList.appendChild(item);
+      });
+    }
+
+    elements.summaryReviewButton.hidden = getMistakeCount() === 0;
+    elements.roundSummary.hidden = false;
+    elements.summaryNewRoundButton.focus();
+  }
+
+  function getSummaryCopy(total, missedCount, reason) {
+    if (!total) {
+      return reason === "time"
+        ? "The clock beat you to the first answer. Fresh sprint, fresh map."
+        : "This deck is ready whenever you are.";
+    }
+    if (!missedCount) {
+      return "Clean round. That is the kind of recall that sticks.";
+    }
+    if (state.score >= missedCount) {
+      return "Good run. The misses are saved into review mode for a quick cleanup.";
+    }
+    return "Plenty to practice, and now you know exactly where to aim next.";
+  }
+
+  function getSummaryStatMarkup(label, value) {
+    return '<div><span class="summary-stat-value">' + escapeHtml(value) + '</span><span class="summary-stat-label">' + escapeHtml(label) + "</span></div>";
+  }
+
+  function closeRoundSummary() {
+    elements.roundSummary.hidden = true;
+  }
+
+  function clearTimer() {
+    if (state.timerId) {
+      window.clearInterval(state.timerId);
+      state.timerId = null;
+    }
+  }
+
+  function startTimer() {
+    clearTimer();
+    state.timerId = window.setInterval(function () {
+      if (state.roundEnded) {
+        clearTimer();
+        return;
+      }
+
+      state.timerRemaining = Math.max(0, state.timerRemaining - 1);
+      renderTimer();
+      if (state.timerRemaining <= 0) {
+        endRound("time");
+      }
+    }, 1000);
+  }
+
+  function renderTimer() {
+    var hasTimer = (timerOptions[state.timerMode] || 0) > 0;
+    elements.timerPill.hidden = !hasTimer;
+    if (!hasTimer) {
+      return;
+    }
+    elements.timerValue.textContent = formatTime(state.timerRemaining);
+    elements.timerPill.classList.toggle("is-urgent", state.timerRemaining <= 10);
+  }
+
+  function formatTime(seconds) {
+    var minutes = Math.floor(seconds / 60);
+    var remainder = seconds % 60;
+    return minutes + ":" + String(remainder).padStart(2, "0");
+  }
+
+  function renderCountryBrowser() {
+    var query = normaliseAnswer(elements.countrySearchInput.value || "").text;
+    var filteredCards = getFilteredCards();
+    var browserCards = filteredCards.filter(function (card) {
+      if (!query) {
+        return true;
+      }
+      return normaliseAnswer([
+        card.country,
+        card.capital,
+        card.continent,
+        getPopulationLabel(card),
+      ].join(" ")).text.indexOf(query) !== -1;
+    }).sort(function (left, right) {
+      return left.country.localeCompare(right.country);
+    });
+
+    elements.countryListCount.textContent = browserCards.length + " of " + filteredCards.length + " shown";
+    elements.countryList.innerHTML = "";
+
+    if (!browserCards.length) {
+      var empty = document.createElement("div");
+      empty.className = "country-list-empty";
+      empty.textContent = "No countries match that search.";
+      elements.countryList.appendChild(empty);
+      return;
+    }
+
+    browserCards.forEach(function (card) {
+      var item = document.createElement("article");
+      var status = state.mapStatusById[card.id] || "idle";
+      item.className = "country-item country-status-" + status;
+
+      var flag = document.createElement("span");
+      flag.className = "country-item-flag";
+      flag.innerHTML = getFlagMarkup(card);
+
+      var body = document.createElement("div");
+      body.className = "country-item-body";
+      body.innerHTML =
+        "<h3>" + escapeHtml(card.country) + "</h3>" +
+        '<p class="country-item-meta">' + escapeHtml(card.capital) + " - " + escapeHtml(card.continent) + " - " + escapeHtml(getPopulationLabel(card)) + "</p>" +
+        "<p>" + escapeHtml(card.fact || getFallbackFact(card)) + "</p>";
+
+      if (state.mistakeIds[card.id]) {
+        var reviewBadge = document.createElement("span");
+        reviewBadge.className = "country-review-badge";
+        reviewBadge.textContent = "Review";
+        body.appendChild(reviewBadge);
+      }
+
+      item.appendChild(flag);
+      item.appendChild(body);
+      elements.countryList.appendChild(item);
+    });
+  }
+
+  function getPopulationLabel(card) {
+    var filter = populationFilters.find(function (item) {
+      return item.value === card.populationTier;
+    });
+    return filter ? filter.label : "All";
+  }
+
+  function renderBadges() {
+    var badges = getEarnedBadges();
+    elements.badgeRack.innerHTML = "";
+    if (!badges.length) {
+      var empty = document.createElement("span");
+      empty.className = "badge-empty";
+      empty.textContent = "Badges unlock as you answer.";
+      elements.badgeRack.appendChild(empty);
+      return;
+    }
+
+    badges.forEach(function (badge) {
+      var token = document.createElement("span");
+      token.className = "badge-token";
+      token.textContent = badge;
+      elements.badgeRack.appendChild(token);
+    });
+  }
+
+  function getEarnedBadges() {
+    var badges = [];
+    var totalCorrect = Object.keys(state.correctByContinent).reduce(function (sum, continent) {
+      return sum + state.correctByContinent[continent];
+    }, 0);
+
+    if (totalCorrect >= 1) {
+      badges.push("First correct");
+    }
+    if (state.bestStreak >= 5) {
+      badges.push("Five-card streak");
+    }
+    if (state.bestStreak >= 10) {
+      badges.push("Ten-card streak");
+    }
+    if (state.perfectChallengeEarned) {
+      badges.push("Perfect daily");
+    }
+    if (continents.slice(1).every(function (continent) {
+      return (state.correctByContinent[continent] || 0) > 0;
+    })) {
+      badges.push("World sampler");
+    }
+
+    continents.slice(1).forEach(function (continent) {
+      if ((state.correctByContinent[continent] || 0) >= 5) {
+        badges.push(continent + " ace");
+      }
+    });
+
+    return badges;
   }
 
   function disableChoices() {
@@ -696,7 +1213,11 @@
   }
 
   function getExpectedAnswer() {
-    return state.promptType === "country" ? state.current.capital : state.current.country;
+    return state.current[getAnswerKey()];
+  }
+
+  function getAnswerKey() {
+    return state.promptType === "country" ? "capital" : "country";
   }
 
   function getCorrectMessage() {
@@ -724,15 +1245,29 @@
   }
 
   function updateStats() {
-    var deckSize = state.deck.length || getFilteredCards().length;
+    var deckSize = state.deck.length || getAvailableRoundCardCount();
     var progress = deckSize ? Math.min(100, (state.answered / deckSize) * 100) : 0;
     elements.scoreValue.textContent = String(state.score);
     elements.streakValue.textContent = String(state.streak);
     elements.bestStreakValue.textContent = String(state.bestStreak);
-    elements.deckCount.textContent = deckSize + (deckSize === 1 ? " card" : " cards");
-    elements.answeredCount.textContent = state.answered + " answered";
+    elements.deckCount.textContent = getDeckCountLabel(deckSize);
+    elements.answeredCount.textContent = isFiniteRound()
+      ? state.answered + " of " + deckSize + " answered"
+      : state.answered + " answered";
     elements.progressFill.style.width = progress + "%";
     elements.levelBadge.textContent = getLevelName(state.score, state.streak);
+    renderTimer();
+    renderBadges();
+  }
+
+  function getDeckCountLabel(deckSize) {
+    if (state.sessionMode === "challenge") {
+      return deckSize + "-card daily challenge";
+    }
+    if (state.sessionMode === "review") {
+      return deckSize + (deckSize === 1 ? " review card" : " review cards");
+    }
+    return deckSize + (deckSize === 1 ? " card" : " cards");
   }
 
   function getLevelName(score, streak) {
@@ -767,6 +1302,57 @@
     window.setTimeout(function () {
       elements.celebrationLayer.innerHTML = "";
     }, 1300);
+  }
+
+  function seededShuffle(items, seed) {
+    var result = items.slice().sort(function (left, right) {
+      return left.country.localeCompare(right.country);
+    });
+    var random = seededRandom(seed);
+    for (var i = result.length - 1; i > 0; i -= 1) {
+      var j = Math.floor(random() * (i + 1));
+      var temp = result[i];
+      result[i] = result[j];
+      result[j] = temp;
+    }
+    return result;
+  }
+
+  function seededRandom(seed) {
+    var value = seed % 2147483647;
+    if (value <= 0) {
+      value += 2147483646;
+    }
+    return function () {
+      value = (value * 16807) % 2147483647;
+      return (value - 1) / 2147483646;
+    };
+  }
+
+  function getDailySeed() {
+    return hashString(getLocalDateKey() + "|" + state.continent + "|" + state.populationTier);
+  }
+
+  function getLocalDateKey() {
+    var date = new Date();
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+  }
+
+  function hashString(text) {
+    var hash = 0;
+    for (var i = 0; i < text.length; i += 1) {
+      hash = ((hash << 5) - hash) + text.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash) || 1;
+  }
+
+  function getMistakeCount() {
+    return Object.keys(state.mistakeIds).length;
   }
 
   function shuffle(items) {

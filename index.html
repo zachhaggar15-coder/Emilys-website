@@ -59,6 +59,11 @@
           <div class="chip-row" id="population-controls"></div>
         </div>
 
+        <div class="control-group">
+          <span class="control-label">Game type</span>
+          <div class="chip-row" id="session-controls"></div>
+        </div>
+
         <div class="control-grid">
           <label class="select-field">
             <span>Prompt mode</span>
@@ -66,6 +71,7 @@
               <option value="country-to-capital">Country to capital</option>
               <option value="capital-to-country">Capital to country</option>
               <option value="mixed">Mixed</option>
+              <option value="flag-to-country">Flag to country</option>
             </select>
           </label>
 
@@ -74,6 +80,15 @@
             <select id="answer-style-select">
               <option value="type">Type the answer</option>
               <option value="choice">Multiple choice</option>
+            </select>
+          </label>
+
+          <label class="select-field">
+            <span>Timer</span>
+            <select id="timer-select">
+              <option value="off">Timer off</option>
+              <option value="30">30 second sprint</option>
+              <option value="60">60 second sprint</option>
             </select>
           </label>
 
@@ -91,12 +106,17 @@
               <span id="deck-count">193 cards</span>
               <span id="answered-count">0 answered</span>
             </div>
+            <div class="timer-pill" id="timer-pill" hidden>
+              <span>Time</span>
+              <strong id="timer-value">0:00</strong>
+            </div>
             <div class="progress-track" aria-hidden="true">
               <span id="progress-fill"></span>
             </div>
             <p class="motivation" id="motivation-text" aria-live="polite">
               Choose your deck and start the streak.
             </p>
+            <div class="badge-rack" id="badge-rack" aria-label="Session badges"></div>
             <div class="mini-tip">
               Session progress resets when you refresh the page.
             </div>
@@ -108,6 +128,15 @@
                 <span class="control-label">Map tracker</span>
                 <h2 id="map-title">World map</h2>
               </div>
+              <button
+                class="map-toggle-button"
+                id="map-toggle-button"
+                type="button"
+                aria-expanded="true"
+                aria-controls="country-map"
+              >
+                Hide map
+              </button>
               <span class="map-detail" id="map-detail">Countries light up as you answer.</span>
             </div>
             <div class="map-shell">
@@ -171,6 +200,9 @@
             <div class="feedback-row">
               <p class="feedback" id="feedback-text" aria-live="polite"></p>
               <div class="action-row">
+                <button class="ghost-button" id="hint-button" type="button">
+                  Hint
+                </button>
                 <button class="ghost-button" id="show-answer-button" type="button">
                   Show answer
                 </button>
@@ -182,7 +214,53 @@
           </div>
         </section>
       </section>
+
+      <section class="browser-panel" aria-labelledby="browser-title">
+        <div class="browser-header">
+          <div>
+            <span class="control-label">Country browser</span>
+            <h2 id="browser-title">Search the deck</h2>
+          </div>
+          <span id="country-list-count">193 shown</span>
+        </div>
+        <label class="country-search" for="country-search-input">
+          <span>Search by country, capital, continent, or level</span>
+          <input id="country-search-input" autocomplete="off" placeholder="Search the world" />
+        </label>
+        <div class="country-list" id="country-list" aria-live="polite"></div>
+      </section>
     </main>
+
+    <div
+      class="round-summary-overlay"
+      id="round-summary"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="summary-title"
+      hidden
+    >
+      <section class="round-summary-card">
+        <button class="summary-close" id="summary-close-button" type="button" aria-label="Close summary">
+          Close
+        </button>
+        <span class="control-label">Round summary</span>
+        <h2 id="summary-title">Round complete</h2>
+        <p id="summary-copy">Nice run.</p>
+        <div class="summary-stats" id="summary-stats"></div>
+        <div class="summary-missed">
+          <h3>Review list</h3>
+          <ul id="summary-missed-list"></ul>
+        </div>
+        <div class="summary-actions">
+          <button class="ghost-button" id="summary-review-button" type="button">
+            Review mistakes
+          </button>
+          <button class="primary-button" id="summary-new-round-button" type="button">
+            New round
+          </button>
+        </div>
+      </section>
+    </div>
 
     <div class="celebration-layer" id="celebration-layer" aria-hidden="true"></div>
     <script src="data.js"></script>
