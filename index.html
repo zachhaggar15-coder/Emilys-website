@@ -12,16 +12,6 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="opening-splash" id="opening-splash" aria-label="Opening bouquet animation">
-      <div class="bouquet-card">
-        <img
-          src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHlqYnFtMHhlcW5waHA3dzB6NGJlYXJ0ejEwdWFva3dibjE5aHVzZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/LVoKLJpevqUo1BYpTn/giphy.gif"
-          alt="Animated bouquet of flowers"
-        />
-        <p>A quick bouquet before the world tour begins</p>
-      </div>
-    </div>
-
     <main class="app-shell">
       <section class="intro" aria-labelledby="app-title">
         <div>
@@ -31,6 +21,17 @@
             Flip through UN member states, type answers or play multiple choice,
             and build a streak while your mental map gets sharper.
           </p>
+        </div>
+        <div class="intro-side">
+        <div class="wallet-row">
+          <div class="heart-wallet" id="heart-wallet" aria-live="polite">
+            <span class="heart-icon" aria-hidden="true">💖</span>
+            <strong id="heart-count">0</strong>
+            <span class="heart-label">hearts</span>
+          </div>
+          <button class="shop-button" id="shop-button" type="button">
+            <span aria-hidden="true">🛍️</span> Shop
+          </button>
         </div>
         <div class="session-summary" aria-label="Session score">
           <div>
@@ -45,6 +46,7 @@
             <span class="metric-value" id="best-streak-value">0</span>
             <span class="metric-label">Best</span>
           </div>
+        </div>
         </div>
       </section>
 
@@ -118,7 +120,7 @@
             </p>
             <div class="badge-rack" id="badge-rack" aria-label="Session badges"></div>
             <div class="mini-tip">
-              Session progress resets when you refresh the page.
+              Hearts and shop treats are saved on this device. Round stats reset when you refresh.
             </div>
           </section>
 
@@ -158,6 +160,10 @@
 
         <section class="card-stage" aria-label="Current flashcard">
           <div class="card-frame" id="card-frame">
+            <div class="card-buddy" id="card-buddy" aria-hidden="true" hidden>
+              <span class="card-buddy-face" id="card-buddy-face"></span>
+              <span class="card-buddy-bubble" id="card-buddy-bubble"></span>
+            </div>
             <div class="flashcard" id="flashcard">
               <div class="card-face card-front">
                 <span class="card-kicker" id="prompt-label">Country</span>
@@ -262,7 +268,36 @@
       </section>
     </div>
 
+    <div
+      class="shop-overlay"
+      id="shop-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="shop-title"
+      hidden
+    >
+      <section class="shop-card">
+        <button class="summary-close" id="shop-close-button" type="button" aria-label="Close shop">
+          Close
+        </button>
+        <span class="control-label">Treat shop</span>
+        <h2 id="shop-title">Spend your hearts 💕</h2>
+        <p class="shop-copy">
+          Earn hearts for every correct answer, streak and perfect daily challenge,
+          then treat yourself to something cute.
+        </p>
+        <div class="shop-balance">
+          <span aria-hidden="true">💖</span>
+          <strong id="shop-heart-count">0</strong> hearts to spend
+        </div>
+        <div class="shop-tabs chip-row" id="shop-tabs" role="tablist"></div>
+        <p class="shop-category-copy" id="shop-category-copy"></p>
+        <div class="shop-grid" id="shop-grid"></div>
+      </section>
+    </div>
+
     <div class="celebration-layer" id="celebration-layer" aria-hidden="true"></div>
+    <div class="heart-pop-layer" id="heart-pop-layer" aria-hidden="true"></div>
     <script src="data.js"></script>
     <script src="population.js"></script>
     <script src="facts.js"></script>
