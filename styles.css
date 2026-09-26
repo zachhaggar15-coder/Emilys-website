@@ -1738,11 +1738,66 @@ button:focus-visible {
 .cow-bob {
   transform-box: fill-box;
   transform-origin: 50% 100%;
-  animation: cow-breathe 3.2s ease-in-out infinite;
+  animation: cow-idle-bounce 2.6s ease-in-out infinite;
+}
+
+.pet-art[data-mood="happy"] .cow-bob,
+.card-buddy .cow-bob {
+  animation: cow-happy-hop 3.4s ease-in-out infinite;
 }
 
 .pet-art[data-mood="sleepy"] .cow-bob {
-  animation-duration: 5s;
+  animation: cow-breathe 4.5s ease-in-out infinite;
+}
+
+.cow-eyes {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: cow-blink 4.2s ease-in-out infinite;
+}
+
+.cow-ear-left,
+.cow-ear-right {
+  transform-box: fill-box;
+  animation: cow-ear-wiggle 3.8s ease-in-out infinite;
+}
+
+.cow-ear-left {
+  transform-origin: 100% 60%;
+}
+
+.cow-ear-right {
+  transform-origin: 0% 60%;
+  animation-delay: 0.25s;
+  animation-name: cow-ear-wiggle-right;
+}
+
+.cow-tail {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: cow-tail-swish 1.6s ease-in-out infinite;
+}
+
+.cow-fringe {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: cow-fringe-sway 3s ease-in-out infinite;
+}
+
+.cow-bell {
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+  animation: cow-bell-swing 1.4s ease-in-out infinite;
+}
+
+.cow-sweat {
+  animation: zzz-float 1.8s ease-in-out infinite;
+}
+
+.pet-art[data-mood="sleepy"] .cow-tail,
+.pet-art[data-mood="sleepy"] .cow-ear-left,
+.pet-art[data-mood="sleepy"] .cow-ear-right {
+  animation-duration: 7s;
 }
 
 .cow-zzz {
@@ -2063,6 +2118,118 @@ button:focus-visible {
 .toast.is-visible {
   opacity: 1;
   transform: translate(-50%, 0);
+}
+
+@keyframes cow-idle-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+
+  50% {
+    transform: translateY(-3px) scale(1.01, 0.99);
+  }
+}
+
+@keyframes cow-happy-hop {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+
+  66% {
+    transform: translateY(1px) scale(1.06, 0.94);
+  }
+
+  74% {
+    transform: translateY(-12px) scale(0.97, 1.04);
+  }
+
+  82% {
+    transform: translateY(0) scale(1.04, 0.96);
+  }
+
+  88% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+
+@keyframes cow-blink {
+  0%,
+  90%,
+  100% {
+    transform: scaleY(1);
+  }
+
+  94% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes cow-ear-wiggle {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  78% {
+    transform: rotate(14deg);
+  }
+
+  86% {
+    transform: rotate(-6deg);
+  }
+}
+
+@keyframes cow-ear-wiggle-right {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  78% {
+    transform: rotate(-14deg);
+  }
+
+  86% {
+    transform: rotate(6deg);
+  }
+}
+
+@keyframes cow-tail-swish {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  50% {
+    transform: rotate(-18deg);
+  }
+}
+
+@keyframes cow-fringe-sway {
+  0%,
+  100% {
+    transform: rotate(-2deg);
+  }
+
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes cow-bell-swing {
+  0%,
+  100% {
+    transform: rotate(-10deg);
+  }
+
+  50% {
+    transform: rotate(10deg);
+  }
 }
 
 @keyframes cow-breathe {
