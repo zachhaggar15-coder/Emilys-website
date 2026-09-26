@@ -163,15 +163,23 @@
   var mapPathById = {};
   var mapCenterById = {};
   var svgNamespace = "http://www.w3.org/2000/svg";
+  // Each frame hugs its continent with a small margin (measured from the map shapes).
   var mapViewBoxes = {
     "Whole World": "0 0 1000 500",
-    Africa: "410 135 275 285",
-    Asia: "510 40 475 320",
-    Europe: "415 70 245 170",
-    "North America": "80 55 330 225",
-    "South America": "285 230 180 250",
-    Oceania: "705 220 340 210",
+    Africa: "423 140 246 213",
+    Asia: "566 90 344 195",
+    Europe: "426 20 191 139",
+    "North America": "17 13 343 223",
+    "South America": "268 209 142 202",
+    Oceania: "808 220 224 166",
+    Caribbean: "258 170 88 64",
   };
+
+  // Tiny islands that crowd together; "Tap the map" zooms right in on them.
+  var caribbeanIslandIds = ["atg", "brb", "dma", "grd", "kna", "lca", "vct", "tto"];
+  var mapTapTargetPx = 8;
+  // Countries whose islands sit either side of the date line look huge to the code but are tiny on screen.
+  var dateLineIslands = { fji: { lon: 178.1, lat: -17.8 } };
   var smallCountryMarkers = {
     and: { lon: 1.52, lat: 42.51 },
     atg: { lon: -61.8, lat: 17.06 },
@@ -494,6 +502,7 @@
       });
     });
     elements.countryMap.addEventListener("click", handleMapTap);
+    watchDialogs();
     elements.petRenameButton.addEventListener("click", function () {
       openNameForm();
       elements.petNameInput.focus();
@@ -527,6 +536,11 @@
       }
     });
     document.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" && canUseEnterForNext(event.target)) {
+        event.preventDefault();
+        nextCard();
+        return;
+      }
       if (event.key !== "Escape") {
         return;
       }
@@ -855,21 +869,72 @@
       return lookup;
     }, {});
     elements.countryMap.innerHTML = "";
-    elements.countryMap.setAttribute("viewBox", mapViewBoxes[state.continent] || mapViewBoxes["Whole World"]);
-    elements.mapTitle.textContent = state.continent === "Whole World" ? "World map" : state.continent + " map";
+    state.mapRegion = getMapRegion();
+    elements.countryMap.setAttribute("viewBox", mapViewBoxes[state.mapRegion] || mapViewBoxes["Whole World"]);
+    elements.mapTitle.textContent = state.mapRegion === "Whole World" ? "World map" : state.mapRegion + " map";
     elements.mapDetail.textContent = getMapDetail();
 
+    // Countries first, then the dots for tiny ones, so no dot is hidden under a big neighbour.
     mapCards.forEach(function (card) {
-      var status = getMapStatus(card);
-      var isInDeck = Boolean(deckIds[card.id]);
       if (mapPathById[card.id]) {
-        renderMapPath(card, status, isInDeck);
-      } else {
-        renderMapMarker(card, status, isInDeck);
+        renderMapPath(card, getMapStatus(card), Boolean(deckIds[card.id]));
+      }
+    });
+    mapCards.forEach(function (card) {
+      if (!mapPathById[card.id]) {
+        renderMapMarker(card, getMapStatus(card), Boolean(deckIds[card.id]));
       }
     });
 
     renderCurrentMapPulse();
+    if (isMapMode()) {
+      addTapTargetsForTinyCountries();
+    }
+  }
+
+  // In "Tap the map" the map zooms to the card's continent (or right into the Caribbean
+  // for its tiny islands) so every country is big enough to tap.
+  function getMapRegion() {
+    if (isMapMode() && state.current) {
+      if (caribbeanIslandIds.indexOf(state.current.id) !== -1) {
+        return "Caribbean";
+      }
+      if (state.continent === "Whole World") {
+        return state.current.continent;
+      }
+    }
+    return state.continent;
+  }
+
+  function getMapPixelsPerUnit() {
+    var viewBox = (mapViewBoxes[state.mapRegion] || mapViewBoxes["Whole World"]).split(" ").map(Number);
+    var box = elements.countryMap.getBoundingClientRect();
+    return box.width && box.height ? Math.min(box.width / viewBox[2], box.height / viewBox[3]) : 0;
+  }
+
+  function addTapTargetsForTinyCountries() {
+    var scale = getMapPixelsPerUnit();
+    if (!scale) {
+      return;
+    }
+    Array.prototype.forEach.call(elements.countryMap.querySelectorAll("path.map-country"), function (path) {
+      var box = path.getBBox();
+      var island = dateLineIslands[path.getAttribute("data-id")];
+      var center = island
+        ? projectCoordinate(island.lon, island.lat, true)
+        : { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      // Anything smaller than about 24px across gets a dot, so neighbouring dots can't hide it.
+      if (!island && (box.width * scale >= mapTapTargetPx * 3 || box.height * scale >= mapTapTargetPx * 3)) {
+        return;
+      }
+      var dot = document.createElementNS(svgNamespace, "circle");
+      dot.setAttribute("cx", center.x.toFixed(2));
+      dot.setAttribute("cy", center.y.toFixed(2));
+      dot.setAttribute("r", (mapTapTargetPx / scale).toFixed(2));
+      dot.setAttribute("class", path.getAttribute("class").replace("map-country", "map-marker map-hit"));
+      dot.setAttribute("data-id", path.getAttribute("data-id"));
+      elements.countryMap.appendChild(dot);
+    });
   }
 
   function getGeographicCards() {
@@ -1010,8 +1075,9 @@
 
   function getMarkerRadius(card) {
     if (isMapMode()) {
-      // Bigger dots so tiny countries are easy to tap.
-      return state.continent === "Whole World" ? "6.5" : "4.6";
+      // Dots stay about the same size on screen at every zoom level, so they are easy to tap.
+      var scale = getMapPixelsPerUnit();
+      return scale ? (mapTapTargetPx / scale).toFixed(2) : "4.6";
     }
     if (state.current && state.current.id === card.id) {
       return "5.6";
@@ -1076,7 +1142,7 @@
 
   function projectCoordinate(lon, lat, wrapPacific) {
     var projectedLon = lon;
-    if (wrapPacific && state.continent === "Oceania" && projectedLon < 0) {
+    if (wrapPacific && (state.mapRegion || state.continent) === "Oceania" && projectedLon < 0) {
       projectedLon += 360;
     }
     return {
@@ -1105,6 +1171,42 @@
     }
   }
 
+  // Dots for tiny countries can sit close together, so a tap goes to the nearest one.
+  function getNearestDot(x, y) {
+    var nearest = null;
+    var nearestDistance = Infinity;
+    Array.prototype.forEach.call(elements.countryMap.querySelectorAll("circle[data-id]"), function (dot) {
+      var box = dot.getBoundingClientRect();
+      var distance = Math.hypot(box.left + box.width / 2 - x, box.top + box.height / 2 - y);
+      if (distance <= box.width / 2 + 6 && distance < nearestDistance) {
+        nearest = dot;
+        nearestDistance = distance;
+      }
+    });
+    return nearest;
+  }
+
+  function watchDialogs() {
+    var overlays = [elements.shopOverlay, elements.backupOverlay, elements.scrapbookOverlay, elements.roundSummary];
+    var sync = function () {
+      var open = overlays.some(function (overlay) {
+        return !overlay.hidden;
+      });
+      document.body.classList.toggle("has-dialog", open);
+    };
+    var observer = new MutationObserver(sync);
+    overlays.forEach(function (overlay) {
+      observer.observe(overlay, { attributes: true, attributeFilter: ["hidden"] });
+    });
+    sync();
+  }
+
+  function canUseEnterForNext(target) {
+    var typing = /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(target.tagName);
+    var dialogOpen = document.body.classList.contains("has-dialog");
+    return state.hasAnswered && !state.roundEnded && !typing && !dialogOpen;
+  }
+
   function isMapMode() {
     return state.answerStyle === "map";
   }
@@ -1124,6 +1226,9 @@
       return;
     }
     var target = event.target.closest("[data-id]");
+    if (!target || target.tagName === "circle") {
+      target = getNearestDot(event.clientX, event.clientY) || target;
+    }
     if (!target) {
       return;
     }
@@ -1324,6 +1429,23 @@
     return "The " + answerLabel + " starts with " + firstCharacter + " and has " + letterCount + " letters. " + placeClue;
   }
 
+  // The perfect-daily bonus pays once per day for each deck, so replaying it can't farm hearts.
+  function claimDailyPerfect() {
+    var today = getLocalDateKey();
+    var key = state.continent + "|" + state.populationTier;
+    var claims = state.shop.dailyPerfect;
+    if (!claims || claims.date !== today) {
+      claims = { date: today, decks: {} };
+    }
+    if (claims.decks[key]) {
+      return false;
+    }
+    claims.decks[key] = true;
+    state.shop.dailyPerfect = claims;
+    saveShop();
+    return true;
+  }
+
   function isFiniteRound() {
     return state.sessionMode === "challenge" || state.sessionMode === "review";
   }
@@ -1344,7 +1466,9 @@
 
     if (state.sessionMode === "challenge" && state.deck.length && state.score === state.deck.length) {
       state.perfectChallengeEarned = true;
-      earnHearts(heartRewards.perfectDaily, "perfect daily");
+      if (claimDailyPerfect()) {
+        earnHearts(heartRewards.perfectDaily, "perfect daily");
+      }
       celebrate();
     } else if (reason !== "time" && state.history.length) {
       earnHearts(heartRewards.roundComplete, "round complete");
@@ -1826,6 +1950,9 @@
         shop.diary = saved.diary;
       }
       shop.backupAt = Number(saved.backupAt) || 0;
+      if (saved.dailyPerfect && typeof saved.dailyPerfect === "object") {
+        shop.dailyPerfect = saved.dailyPerfect;
+      }
       shop.backupReminderOn = String(saved.backupReminderOn || "");
     }
     return shop;
@@ -2616,6 +2743,9 @@
   }
 
   function greetVisitor() {
+    if (elements.petSpeech.classList.contains("is-visible")) {
+      return;
+    }
     if (isEggStage(getPetStage())) {
       petSay("*wiggle wiggle*");
       bounceClass(elements.petArt, "is-wobbling", 700);
@@ -2819,6 +2949,10 @@
     ].join("");
 
     var month = state.calendarMonth;
+    var now = new Date();
+    elements.calendarNext.disabled =
+      month.getFullYear() > now.getFullYear() ||
+      (month.getFullYear() === now.getFullYear() && month.getMonth() >= now.getMonth());
     elements.calendarMonth.textContent = month.toLocaleDateString(undefined, { month: "long", year: "numeric" });
     elements.calendarGrid.innerHTML = "";
     ["M", "T", "W", "T", "F", "S", "S"].forEach(function (label) {
