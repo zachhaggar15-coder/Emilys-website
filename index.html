@@ -50,6 +50,58 @@
         </div>
       </section>
 
+      <section class="cow-corner" aria-label="Your highland cow and weekly trip">
+        <article class="pet-panel" aria-labelledby="pet-name">
+          <div class="pet-header">
+            <div>
+              <span class="control-label">Your highland coo</span>
+              <h2 class="pet-name-row">
+                <span id="pet-name">Hamish</span>
+                <button class="pet-rename" id="pet-rename-button" type="button" aria-label="Rename your cow">✏️</button>
+              </h2>
+              <span class="pet-stage-label" id="pet-stage-label">Egg · Day 1 of 90</span>
+            </div>
+            <div class="pet-growth" aria-label="Growth progress">
+              <span class="pet-meter-label">Growing up</span>
+              <div class="pet-meter"><span id="pet-growth-fill"></span></div>
+              <span class="pet-meter-note" id="pet-growth-note">89 days to go</span>
+            </div>
+          </div>
+          <div class="pet-body">
+            <div class="pet-stage" id="pet-stage">
+              <div class="pet-art" id="pet-art"></div>
+              <span class="pet-speech" id="pet-speech" aria-live="polite"></span>
+            </div>
+            <div class="pet-care">
+              <div class="pet-happiness">
+                <div class="pet-happiness-top">
+                  <span class="pet-meter-label">Happiness</span>
+                  <strong id="pet-happiness-value">80%</strong>
+                </div>
+                <div class="pet-meter is-happiness"><span id="pet-happiness-fill"></span></div>
+                <p class="pet-mood" id="pet-mood">Over the moo-n 💕</p>
+              </div>
+              <span class="pet-meter-label">Snacks</span>
+              <div class="snack-row" id="snack-row"></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="journey-panel" aria-labelledby="journey-title">
+          <span class="control-label">This week's trip ✈️</span>
+          <h2 id="journey-title">Europe</h2>
+          <p class="journey-copy" id="journey-copy">Get capitals right in Europe this week to earn medals.</p>
+          <div class="journey-track" aria-hidden="true">
+            <span class="journey-fill" id="journey-fill"></span>
+            <div class="journey-markers" id="journey-markers"></div>
+          </div>
+          <strong class="journey-count" id="journey-count">0 correct so far</strong>
+          <ul class="journey-rewards" id="journey-rewards"></ul>
+          <button class="primary-button journey-play" id="journey-play-button" type="button">Play the Europe deck</button>
+          <span class="journey-next" id="journey-next">New trip on Monday</span>
+        </article>
+      </section>
+
       <section class="controls" aria-label="Quiz controls">
         <div class="control-group">
           <span class="control-label">Deck</span>
@@ -298,11 +350,13 @@
 
     <div class="celebration-layer" id="celebration-layer" aria-hidden="true"></div>
     <div class="heart-pop-layer" id="heart-pop-layer" aria-hidden="true"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
     <script src="data.js"></script>
     <script src="population.js"></script>
     <script src="facts.js"></script>
     <script src="flags.js"></script>
     <script src="world-map.js"></script>
+    <script src="cow.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
