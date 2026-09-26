@@ -134,6 +134,10 @@ body {
   display: none !important;
 }
 
+body.has-dialog {
+  overflow: hidden;
+}
+
 button,
 input,
 select {
@@ -2518,6 +2522,10 @@ button:focus-visible {
 .map-answer .map-marker:hover {
   fill: var(--heart);
   opacity: 1;
+}
+
+.map-hit {
+  stroke-width: 1.5;
 }
 
 .map-tapped {
