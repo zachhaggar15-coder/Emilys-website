@@ -42,6 +42,11 @@
       label: "Study buddies",
       copy: "A little friend who sits on your card and cheers you on.",
     },
+    {
+      id: "cow",
+      label: "Coo outfits",
+      copy: "Dress up your highland cow. One hat, one pair of glasses and one neck piece at a time. Tap again to take it off.",
+    },
   ];
   var shopItems = [
     { id: "theme-ocean", category: "theme", name: "Ocean Breeze", price: 0, icon: "🌊", swatch: ["#0f766e", "#d9f5f0", "#f4f9fc"] },
@@ -57,17 +62,70 @@
     { id: "effect-butterflies", category: "effect", name: "Butterflies", price: 90, icon: "🦋", pieces: ["🦋", "🦋", "✨"] },
     { id: "effect-kittens", category: "effect", name: "Kitten shower", price: 120, icon: "🐱", pieces: ["🐱", "😻", "🐾", "😸"] },
     { id: "buddy-none", category: "buddy", name: "No buddy", price: 0, icon: "🫥" },
+    { id: "buddy-cow", category: "buddy", name: "Your highland coo", price: 0, icon: "🐮" },
     { id: "buddy-kitty", category: "buddy", name: "Kitty", price: 40, icon: "🐱" },
     { id: "buddy-bunny", category: "buddy", name: "Bunny", price: 60, icon: "🐰" },
     { id: "buddy-frog", category: "buddy", name: "Froggy", price: 60, icon: "🐸" },
     { id: "buddy-penguin", category: "buddy", name: "Penguin", price: 80, icon: "🐧" },
     { id: "buddy-bear", category: "buddy", name: "Teddy", price: 80, icon: "🧸" },
     { id: "buddy-unicorn", category: "buddy", name: "Unicorn", price: 150, icon: "🦄" },
+    { id: "cow-bow", category: "cow", slot: "hat", name: "Pink bow", price: 30 },
+    { id: "cow-bell", category: "cow", slot: "neck", name: "Cow bell", price: 30 },
+    { id: "cow-bow-tie", category: "cow", slot: "neck", name: "Bow tie", price: 40 },
+    { id: "cow-round-glasses", category: "cow", slot: "face", name: "Reading glasses", price: 50 },
+    { id: "cow-party-hat", category: "cow", slot: "hat", name: "Party hat", price: 60 },
+    { id: "cow-scarf", category: "cow", slot: "neck", name: "Cosy scarf", price: 60 },
+    { id: "cow-heart-glasses", category: "cow", slot: "face", name: "Heart sunglasses", price: 70 },
+    { id: "cow-flower-crown", category: "cow", slot: "hat", name: "Flower crown", price: 80 },
+    { id: "cow-crown", category: "cow", slot: "hat", name: "Royal crown", price: 150 },
+    { id: "cow-beret", category: "cow", slot: "hat", name: "French beret", price: null, exclusive: "Europe" },
+    { id: "cow-blossom-clip", category: "cow", slot: "hat", name: "Blossom clip", price: null, exclusive: "Asia" },
+    { id: "cow-safari-hat", category: "cow", slot: "hat", name: "Safari hat", price: null, exclusive: "Africa" },
+    { id: "cow-cowboy-hat", category: "cow", slot: "hat", name: "Cowboy hat", price: null, exclusive: "North America" },
+    { id: "cow-beanie", category: "cow", slot: "hat", name: "Knitted beanie", price: null, exclusive: "South America" },
+    { id: "cow-lei", category: "cow", slot: "neck", name: "Flower lei", price: null, exclusive: "Oceania" },
+  ];
+  var petGrowDays = 90;
+  var petStages = [
+    { id: "egg", fromDay: 0, label: "Egg" },
+    { id: "egg-cracked", fromDay: 2, label: "Hatching egg" },
+    { id: "calf", fromDay: 3, label: "Newborn calf" },
+    { id: "young-calf", fromDay: 15, label: "Calf" },
+    { id: "young", fromDay: 45, label: "Young coo" },
+    { id: "adult", fromDay: 90, label: "Grown-up highland coo" },
+  ];
+  // Happiness drops slowly over time (about 30% a day) and snacks top it back up.
+  // It never hurts the cow: at worst it gets sleepy until the next snack.
+  var happinessLossPerHour = 1.25;
+  var happyBonusThreshold = 70;
+  var snacks = [
+    { id: "grass", name: "Fresh grass", icon: "🌿", price: 5, happiness: 10 },
+    { id: "carrot", name: "Carrot", icon: "🥕", price: 10, happiness: 20 },
+    { id: "apple", name: "Apple", icon: "🍎", price: 15, happiness: 30 },
+    { id: "biscuit", name: "Oat biscuit", icon: "🍪", price: 20, happiness: 45 },
+    { id: "cake", name: "Birthday cake", icon: "🍰", price: 40, happiness: 100, party: true },
+  ];
+  var petLines = {
+    fed: ["Nom nom!", "Mmm, tasty!", "Moo-velous!", "*happy chewing*", "Thank moo! 💕"],
+    party: ["Party time! 🎉", "Best day ever!", "Cake!!! 💕"],
+    pet: ["Moo!", "Hi! 💕", "*swishes tail*", "Hehe", "Love you!"],
+    correct: ["Moo-velous!", "So clever!", "Yay!", "Genius coo-mate!"],
+    wrong: ["It's okay!", "Next one!", "Moo worries 💕"],
+  };
+  // Each week has a different continent to explore, in this order.
+  var journeyOrder = ["Europe", "Asia", "Africa", "North America", "South America", "Oceania"];
+  var journeyTiers = [
+    { id: "bronze", label: "Bronze", medal: "🥉", target: 10, hearts: 20 },
+    { id: "silver", label: "Silver", medal: "🥈", target: 25, hearts: 40 },
+    { id: "gold", label: "Gold", medal: "🥇", target: 50, hearts: 80, outfit: true },
   ];
   var defaultEquipped = {
     theme: "theme-ocean",
     effect: "effect-confetti",
-    buddy: "buddy-none",
+    buddy: "buddy-cow",
+    "cow-hat": "",
+    "cow-face": "",
+    "cow-neck": "",
   };
   var buddyLines = {
     correct: ["Yay!", "So smart!", "You got it!", "Wow 💕", "Genius!", "Go you!"],
@@ -209,6 +267,27 @@
     shopCategoryCopy: document.getElementById("shop-category-copy"),
     shopGrid: document.getElementById("shop-grid"),
     cardBuddy: document.getElementById("card-buddy"),
+    petName: document.getElementById("pet-name"),
+    petRenameButton: document.getElementById("pet-rename-button"),
+    petStageLabel: document.getElementById("pet-stage-label"),
+    petGrowthFill: document.getElementById("pet-growth-fill"),
+    petGrowthNote: document.getElementById("pet-growth-note"),
+    petStage: document.getElementById("pet-stage"),
+    petArt: document.getElementById("pet-art"),
+    petSpeech: document.getElementById("pet-speech"),
+    petHappinessValue: document.getElementById("pet-happiness-value"),
+    petHappinessFill: document.getElementById("pet-happiness-fill"),
+    petMood: document.getElementById("pet-mood"),
+    snackRow: document.getElementById("snack-row"),
+    journeyTitle: document.getElementById("journey-title"),
+    journeyCopy: document.getElementById("journey-copy"),
+    journeyFill: document.getElementById("journey-fill"),
+    journeyMarkers: document.getElementById("journey-markers"),
+    journeyCount: document.getElementById("journey-count"),
+    journeyRewards: document.getElementById("journey-rewards"),
+    journeyPlayButton: document.getElementById("journey-play-button"),
+    journeyNext: document.getElementById("journey-next"),
+    toast: document.getElementById("toast"),
     cardBuddyFace: document.getElementById("card-buddy-face"),
     cardBuddyBubble: document.getElementById("card-buddy-bubble"),
   };
@@ -246,8 +325,19 @@
     renderPopulationControls();
     renderSessionControls();
     bindEvents();
+    refreshPet(true);
+    refreshJourney();
     applyEquippedItems();
     renderHearts();
+    renderSnacks();
+    renderPet();
+    renderJourney();
+    window.setInterval(function () {
+      refreshPet(false);
+      refreshJourney();
+      renderPet();
+      renderJourney();
+    }, 60000);
     renderMapCollapseState();
     renderCountryBrowser();
     startRound();
@@ -311,6 +401,25 @@
     });
 
     elements.shopButton.addEventListener("click", openShop);
+    elements.petRenameButton.addEventListener("click", renamePet);
+    elements.petStage.addEventListener("click", function () {
+      if (getPetStage().id.indexOf("egg") === 0) {
+        petSay(getPetStage().id === "egg" ? "*wobble wobble*" : "*crack*");
+        bounceClass(elements.petArt, "is-wobbling", 700);
+        return;
+      }
+      petSay(randomItem(petLines.pet));
+      bounceClass(elements.petArt, "is-hopping", 650);
+    });
+    elements.journeyPlayButton.addEventListener("click", function () {
+      state.continent = getJourneyContinent();
+      if (state.sessionMode === "review") {
+        state.sessionMode = "practice";
+      }
+      updateActiveContinent();
+      startRound();
+      elements.cardFrame.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
     elements.shopCloseButton.addEventListener("click", closeShop);
     elements.shopOverlay.addEventListener("click", function (event) {
       if (event.target === elements.shopOverlay) {
@@ -980,7 +1089,12 @@
       elements.feedbackText.textContent = getCorrectMessage();
       elements.motivationText.textContent = getStreakMessage();
       markChoice(choiceButton, true);
-      earnHearts(state.hintShown ? heartRewards.correctWithHint : heartRewards.correct);
+      var petBonus = isPetHappy() ? 1 : 0;
+      earnHearts(
+        (state.hintShown ? heartRewards.correctWithHint : heartRewards.correct) + petBonus,
+        petBonus ? "(+1 happy coo)" : ""
+      );
+      recordJourneyAnswer(state.current);
       if (state.streak > 0 && state.streak % 5 === 0) {
         earnHearts(heartRewards.streakBonus, "streak bonus");
         celebrate();
@@ -1484,16 +1598,34 @@
       hearts: 0,
       owned: {},
       equipped: Object.assign({}, defaultEquipped),
+      pet: {
+        name: "Hamish",
+        bornOn: getLocalDateKey(),
+        happiness: 80,
+        happinessAt: Date.now(),
+        lastStage: "egg",
+      },
+      journey: { weekKey: "", count: 0, claimed: {} },
     };
     if (saved && typeof saved === "object") {
       shop.hearts = Math.max(0, Number(saved.hearts) || 0);
       shop.owned = saved.owned && typeof saved.owned === "object" ? saved.owned : {};
       Object.keys(defaultEquipped).forEach(function (category) {
         var itemId = saved.equipped && saved.equipped[category];
-        if (itemId && getShopItem(itemId)) {
+        if (itemId === "" || (itemId && getShopItem(itemId))) {
           shop.equipped[category] = itemId;
         }
       });
+      if (!saved.pet && shop.equipped.buddy === "buddy-none") {
+        // First visit since the cow arrived: let her sit on the card straight away.
+        shop.equipped.buddy = "buddy-cow";
+      }
+      if (saved.pet && typeof saved.pet === "object") {
+        Object.assign(shop.pet, saved.pet);
+      }
+      if (saved.journey && typeof saved.journey === "object") {
+        Object.assign(shop.journey, saved.journey);
+      }
     }
     return shop;
   }
@@ -1516,6 +1648,10 @@
     return item.price === 0 || Boolean(state.shop.owned[item.id]);
   }
 
+  function getEquipSlot(item) {
+    return item.slot ? "cow-" + item.slot : item.category;
+  }
+
   function earnHearts(amount, reason) {
     if (!amount) {
       return;
@@ -1529,6 +1665,7 @@
   function renderHearts() {
     elements.heartCount.textContent = String(state.shop.hearts);
     elements.shopHeartCount.textContent = String(state.shop.hearts);
+    updateSnackButtons();
   }
 
   function showHeartPop(amount, reason) {
@@ -1553,19 +1690,30 @@
     var theme = state.shop.equipped.theme.replace("theme-", "");
     document.body.dataset.theme = theme;
 
-    var buddy = getShopItem(state.shop.equipped.buddy);
-    var hasBuddy = buddy && buddy.id !== "buddy-none";
-    elements.cardBuddy.hidden = !hasBuddy;
-    elements.cardBuddyFace.textContent = hasBuddy ? buddy.icon : "";
+    renderCardBuddy();
     elements.cardBuddyBubble.textContent = "";
     elements.cardBuddy.classList.remove("is-talking");
+  }
+
+  function renderCardBuddy() {
+    var buddy = getShopItem(state.shop.equipped.buddy);
+    var hasBuddy = buddy && buddy.id !== "buddy-none";
+    var isCow = hasBuddy && buddy.id === "buddy-cow";
+    elements.cardBuddy.hidden = !hasBuddy;
+    elements.cardBuddy.classList.toggle("is-cow", Boolean(isCow));
+    if (isCow) {
+      elements.cardBuddyFace.innerHTML = getCowMarkup();
+    } else {
+      elements.cardBuddyFace.textContent = hasBuddy ? buddy.icon : "";
+    }
   }
 
   function buddyReact(mood) {
     if (elements.cardBuddy.hidden) {
       return;
     }
-    elements.cardBuddyBubble.textContent = randomItem(buddyLines[mood]);
+    var lines = state.shop.equipped.buddy === "buddy-cow" && petLines[mood] ? petLines[mood] : buddyLines[mood];
+    elements.cardBuddyBubble.textContent = randomItem(lines);
     elements.cardBuddy.classList.remove("is-happy", "is-sad", "is-talking");
     void elements.cardBuddy.offsetWidth;
     elements.cardBuddy.classList.add(mood === "wrong" ? "is-sad" : "is-happy", "is-talking");
@@ -1623,7 +1771,7 @@
 
   function getShopItemCard(item) {
     var owned = isOwned(item);
-    var equipped = state.shop.equipped[item.category] === item.id;
+    var equipped = state.shop.equipped[getEquipSlot(item)] === item.id;
     var card = document.createElement("article");
     card.className = "shop-item" + (equipped ? " is-equipped" : "") + (owned ? " is-owned" : "");
 
@@ -1635,7 +1783,12 @@
     }
     var icon = document.createElement("span");
     icon.className = "shop-item-icon";
-    icon.textContent = item.icon;
+    if (item.category === "cow" || item.id === "buddy-cow") {
+      icon.classList.add("is-cow");
+      icon.innerHTML = getCowMarkup(item.slot ? item : null);
+    } else {
+      icon.textContent = item.icon;
+    }
     preview.appendChild(icon);
     card.appendChild(preview);
 
@@ -1645,18 +1798,32 @@
 
     var price = document.createElement("span");
     price.className = "shop-item-price";
-    price.textContent = owned ? (item.price === 0 ? "Free" : "Owned") : item.price + " 💖";
+    if (item.exclusive) {
+      price.textContent = owned ? "Owned · Trip reward" : "🥇 Gold reward";
+    } else {
+      price.textContent = owned ? (item.price === 0 ? "Free" : "Owned") : item.price + " 💖";
+    }
     card.appendChild(price);
 
     var button = document.createElement("button");
     button.type = "button";
-    if (equipped) {
+    if (equipped && item.slot) {
+      button.className = "shop-action is-equipped";
+      button.textContent = "Wearing ✓ · Take off";
+      button.addEventListener("click", function () {
+        equipItem(item);
+      });
+    } else if (equipped) {
       button.className = "shop-action is-equipped";
       button.textContent = "Equipped ✓";
       button.disabled = true;
+    } else if (!owned && item.exclusive) {
+      button.className = "shop-action";
+      button.textContent = "Win it in " + item.exclusive + " week";
+      button.disabled = true;
     } else if (owned) {
       button.className = "shop-action";
-      button.textContent = "Use this";
+      button.textContent = item.slot ? "Wear it" : "Use this";
       button.addEventListener("click", function () {
         equipItem(item);
       });
@@ -1688,7 +1855,7 @@
   }
 
   function buyItem(item) {
-    if (isOwned(item) || state.shop.hearts < item.price) {
+    if (item.exclusive || isOwned(item) || state.shop.hearts < item.price) {
       return;
     }
     state.shop.hearts -= item.price;
@@ -1701,13 +1868,393 @@
     if (!isOwned(item)) {
       return;
     }
-    state.shop.equipped[item.category] = item.id;
+    var slot = getEquipSlot(item);
+    if (item.slot && state.shop.equipped[slot] === item.id) {
+      state.shop.equipped[slot] = "";
+    } else {
+      state.shop.equipped[slot] = item.id;
+    }
     saveShop();
     applyEquippedItems();
+    renderPet();
     renderShop();
-    if (item.category === "buddy") {
+    if (item.category === "buddy" || item.category === "cow") {
       buddyReact("correct");
     }
+  }
+
+  function getPetAgeDays() {
+    var born = parseDateKey(state.shop.pet.bornOn);
+    var today = parseDateKey(getLocalDateKey());
+    return Math.max(0, Math.round((today - born) / 86400000));
+  }
+
+  function parseDateKey(key) {
+    var parts = String(key).split("-").map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) {
+      return new Date(new Date().setHours(0, 0, 0, 0));
+    }
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+
+  function getPetStage() {
+    var age = getPetAgeDays();
+    var current = petStages[0];
+    petStages.forEach(function (stage) {
+      if (age >= stage.fromDay) {
+        current = stage;
+      }
+    });
+    return current;
+  }
+
+  function isEggStage(stage) {
+    return stage.id.indexOf("egg") === 0;
+  }
+
+  function getPetHappiness() {
+    if (isEggStage(getPetStage())) {
+      return 100;
+    }
+    var hours = Math.max(0, (Date.now() - Number(state.shop.pet.happinessAt || Date.now())) / 3600000);
+    var value = Number(state.shop.pet.happiness) - hours * happinessLossPerHour;
+    return Math.round(Math.min(100, Math.max(0, value)));
+  }
+
+  function getPetMood() {
+    var happiness = getPetHappiness();
+    var name = state.shop.pet.name;
+    if (happiness >= happyBonusThreshold) {
+      return { id: "happy", text: "Over the moo-n 💕 Bonus +1 heart for every correct answer!" };
+    }
+    if (happiness >= 40) {
+      return { id: "content", text: "Content and cosy. A snack would make " + name + " extra happy." };
+    }
+    if (happiness >= 15) {
+      return { id: "sad", text: name + " is a little peckish... maybe a carrot?" };
+    }
+    return { id: "sleepy", text: name + " is sleepy and hungry. A snack will help!" };
+  }
+
+  function isPetHappy() {
+    return !isEggStage(getPetStage()) && getPetHappiness() >= happyBonusThreshold;
+  }
+
+  function refreshPet(isFirstLoad) {
+    var pet = state.shop.pet;
+    var stage = getPetStage();
+    if (stage.id === pet.lastStage) {
+      return;
+    }
+
+    var wasEgg = pet.lastStage.indexOf("egg") === 0;
+    pet.lastStage = stage.id;
+    if (wasEgg && !isEggStage(stage)) {
+      // Start the happiness clock from the moment the calf hatches.
+      pet.happiness = 85;
+      pet.happinessAt = Date.now();
+      showToast("🐣 Your egg hatched! Say hello to " + pet.name + ", your baby highland coo!");
+      celebrate("effect-hearts");
+    } else if (stage.id === "adult") {
+      showToast("🎉 " + pet.name + " is all grown up! 90 days of love.");
+      celebrate("effect-hearts");
+    } else if (!isFirstLoad || stage.id !== "egg") {
+      showToast("🌱 " + pet.name + " grew into a " + stage.label.toLowerCase() + "!");
+    }
+    saveShop();
+    renderCardBuddy();
+  }
+
+  function getCowMarkup(previewItem) {
+    var equipped = state.shop.equipped;
+    var stage = getPetStage();
+    var outfit = {
+      hat: equipped["cow-hat"],
+      face: equipped["cow-face"],
+      neck: equipped["cow-neck"],
+    };
+    if (previewItem) {
+      // Shop previews show the grown-up coo wearing just that item.
+      outfit = { hat: "", face: "", neck: "" };
+      outfit[previewItem.slot] = previewItem.id;
+    }
+    return window.CowArt.render({
+      stage: previewItem ? "adult" : stage.id,
+      mood: previewItem ? "happy" : getPetMood().id,
+      hat: outfit.hat,
+      face: outfit.face,
+      neck: outfit.neck,
+    });
+  }
+
+  function renderPet() {
+    var pet = state.shop.pet;
+    var stage = getPetStage();
+    var age = getPetAgeDays();
+    var egg = isEggStage(stage);
+    var happiness = getPetHappiness();
+    var mood = getPetMood();
+
+    elements.petName.textContent = pet.name;
+    elements.petStageLabel.textContent = stage.label + " · Day " + Math.min(age + 1, petGrowDays) + " of " + petGrowDays;
+    elements.petGrowthFill.style.width = Math.min(100, (age / petGrowDays) * 100) + "%";
+    elements.petGrowthNote.textContent = age >= petGrowDays
+      ? "All grown up! 🎉"
+      : (petGrowDays - age) + (petGrowDays - age === 1 ? " day" : " days") + " to go";
+
+    elements.petArt.innerHTML = getCowMarkup();
+    elements.petArt.dataset.mood = egg ? "egg" : mood.id;
+
+    elements.petHappinessValue.textContent = egg ? "Snug" : happiness + "%";
+    elements.petHappinessFill.style.width = happiness + "%";
+    elements.petHappinessFill.parentElement.dataset.level = egg ? "happy" : mood.id;
+    elements.petMood.textContent = egg
+      ? (stage.id === "egg"
+        ? "Keep answering while your egg stays warm. It hatches on day 3!"
+        : "Something is wriggling inside... it hatches tomorrow!")
+      : mood.text;
+
+    updateSnackButtons();
+  }
+
+  function updateSnackButtons() {
+    var egg = isEggStage(getPetStage());
+    Array.prototype.forEach.call(elements.snackRow.querySelectorAll("button"), function (button) {
+      var snack = snacks.find(function (item) {
+        return item.id === button.dataset.snack;
+      });
+      button.disabled = egg || !snack || state.shop.hearts < snack.price;
+      button.title = egg
+        ? "Snacks unlock when the egg hatches"
+        : snack.name + ": +" + snack.happiness + "% happiness for " + snack.price + " hearts";
+    });
+  }
+
+  function renderSnacks() {
+    elements.snackRow.innerHTML = "";
+    snacks.forEach(function (snack) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "snack-button";
+      button.dataset.snack = snack.id;
+      button.innerHTML =
+        '<span class="snack-icon" aria-hidden="true">' + snack.icon + "</span>" +
+        '<span class="snack-name">' + escapeHtml(snack.name) + "</span>" +
+        '<span class="snack-price">' + snack.price + " 💖</span>";
+      button.addEventListener("click", function () {
+        feedPet(snack, button);
+      });
+      elements.snackRow.appendChild(button);
+    });
+  }
+
+  function feedPet(snack, button) {
+    if (isEggStage(getPetStage()) || state.shop.hearts < snack.price) {
+      return;
+    }
+
+    state.shop.hearts -= snack.price;
+    state.shop.pet.happiness = Math.min(100, getPetHappiness() + snack.happiness);
+    state.shop.pet.happinessAt = Date.now();
+    saveShop();
+    renderHearts();
+    renderPet();
+    renderCardBuddy();
+    animateSnack(snack, button);
+  }
+
+  function animateSnack(snack, button) {
+    var stageRect = elements.petStage.getBoundingClientRect();
+    var buttonRect = button.getBoundingClientRect();
+    var food = document.createElement("span");
+    food.className = "snack-fly";
+    food.textContent = snack.icon;
+    elements.petStage.appendChild(food);
+
+    var startX = buttonRect.left + buttonRect.width / 2 - stageRect.left;
+    var startY = buttonRect.top + buttonRect.height / 2 - stageRect.top;
+    var mouthX = stageRect.width / 2;
+    var mouthY = stageRect.height * 0.62;
+    var peakY = Math.min(startY, mouthY) - 60;
+    var move = function (x, y, scale) {
+      return "translate(" + (x - 16) + "px, " + (y - 16) + "px) scale(" + scale + ")";
+    };
+
+    var flight = food.animate(
+      [
+        { transform: move(startX, startY, 1), opacity: 1 },
+        { transform: move((startX + mouthX) / 2, peakY, 1.3), opacity: 1, offset: 0.5 },
+        { transform: move(mouthX, mouthY, 0.4), opacity: 0 },
+      ],
+      { duration: 700, easing: "ease-in-out", fill: "forwards" }
+    );
+
+    flight.onfinish = function () {
+      food.remove();
+      bounceClass(elements.petArt, snack.party ? "is-dancing" : "is-munching", snack.party ? 1600 : 1000);
+      petSay(randomItem(snack.party ? petLines.party : petLines.fed));
+      floatPetHearts(snack.party ? 8 : 4);
+      if (snack.party) {
+        celebrate();
+      }
+    };
+  }
+
+  function floatPetHearts(count) {
+    for (var i = 0; i < count; i += 1) {
+      var heart = document.createElement("span");
+      heart.className = "pet-heart";
+      heart.textContent = randomItem(["💕", "💖", "💗"]);
+      heart.style.left = 30 + Math.random() * 40 + "%";
+      heart.style.animationDelay = i * 0.12 + "s";
+      elements.petStage.appendChild(heart);
+      window.setTimeout(heart.remove.bind(heart), 1600 + i * 120);
+    }
+  }
+
+  function petSay(text) {
+    elements.petSpeech.textContent = text;
+    bounceClass(elements.petSpeech, "is-visible", 1800);
+  }
+
+  function bounceClass(element, className, duration) {
+    element.classList.remove(className);
+    void element.offsetWidth;
+    element.classList.add(className);
+    window.clearTimeout(element["_" + className]);
+    element["_" + className] = window.setTimeout(function () {
+      element.classList.remove(className);
+    }, duration);
+  }
+
+  function renamePet() {
+    var name = window.prompt("What should your highland coo be called?", state.shop.pet.name);
+    if (name === null) {
+      return;
+    }
+    name = name.trim().slice(0, 20);
+    if (!name) {
+      return;
+    }
+    state.shop.pet.name = name;
+    saveShop();
+    renderPet();
+    petSay("I love it! 💕");
+  }
+
+  function getWeekStart(date) {
+    var start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    var daysSinceMonday = (start.getDay() + 6) % 7;
+    start.setDate(start.getDate() - daysSinceMonday);
+    return start;
+  }
+
+  function getWeekIndex(weekStart) {
+    var firstMonday = new Date(2024, 0, 1);
+    return Math.round((weekStart - firstMonday) / (7 * 86400000));
+  }
+
+  function getJourneyContinent(offset) {
+    var index = getWeekIndex(getWeekStart(new Date())) + (offset || 0);
+    return journeyOrder[((index % journeyOrder.length) + journeyOrder.length) % journeyOrder.length];
+  }
+
+  function getJourneyOutfit(continent) {
+    return shopItems.find(function (item) {
+      return item.exclusive === continent;
+    });
+  }
+
+  function refreshJourney() {
+    var weekStart = getWeekStart(new Date());
+    var weekKey = [
+      weekStart.getFullYear(),
+      String(weekStart.getMonth() + 1).padStart(2, "0"),
+      String(weekStart.getDate()).padStart(2, "0"),
+    ].join("-");
+    if (state.shop.journey.weekKey !== weekKey) {
+      state.shop.journey = { weekKey: weekKey, count: 0, claimed: {} };
+      saveShop();
+    }
+  }
+
+  function recordJourneyAnswer(card) {
+    refreshJourney();
+    var continent = getJourneyContinent();
+    if (!card || card.continent !== continent) {
+      return;
+    }
+
+    var journey = state.shop.journey;
+    journey.count += 1;
+    journeyTiers.forEach(function (tier) {
+      if (journey.count < tier.target || journey.claimed[tier.id]) {
+        return;
+      }
+      journey.claimed[tier.id] = true;
+      earnHearts(tier.hearts, tier.label.toLowerCase() + " medal");
+      var message = tier.medal + " " + tier.label + " medal on your " + continent + " trip! +" + tier.hearts + " hearts";
+      if (tier.outfit) {
+        var outfit = getJourneyOutfit(continent);
+        if (outfit) {
+          state.shop.owned[outfit.id] = true;
+          message += " and a " + outfit.name + " for " + state.shop.pet.name + "! Find it in Coo outfits.";
+        }
+      }
+      showToast(message);
+      celebrate();
+    });
+    saveShop();
+    renderJourney();
+  }
+
+  function renderJourney() {
+    var continent = getJourneyContinent();
+    var journey = state.shop.journey;
+    var goal = journeyTiers[journeyTiers.length - 1].target;
+    var outfit = getJourneyOutfit(continent);
+
+    elements.journeyTitle.textContent = continent;
+    elements.journeyCopy.textContent =
+      "Get " + continent + " answers right this week (any deck that includes " + continent + " counts).";
+    elements.journeyFill.style.width = Math.min(100, (journey.count / goal) * 100) + "%";
+    elements.journeyCount.textContent = journey.count + " correct so far";
+
+    elements.journeyMarkers.innerHTML = "";
+    journeyTiers.forEach(function (tier) {
+      var marker = document.createElement("span");
+      marker.className = "journey-marker" + (journey.claimed[tier.id] ? " is-claimed" : "");
+      marker.style.left = (tier.target / goal) * 100 + "%";
+      marker.textContent = tier.medal;
+      elements.journeyMarkers.appendChild(marker);
+    });
+
+    elements.journeyRewards.innerHTML = "";
+    journeyTiers.forEach(function (tier) {
+      var item = document.createElement("li");
+      item.className = journey.claimed[tier.id] ? "is-claimed" : "";
+      var reward = "+" + tier.hearts + " 💖";
+      if (tier.outfit && outfit) {
+        reward += " + " + outfit.name + " for your coo";
+      }
+      item.innerHTML =
+        "<span>" + tier.medal + " " + tier.target + " correct</span>" +
+        "<strong>" + (journey.claimed[tier.id] ? "✓ " : "") + escapeHtml(reward) + "</strong>";
+      elements.journeyRewards.appendChild(item);
+    });
+
+    elements.journeyPlayButton.textContent = "Play the " + continent + " deck";
+    elements.journeyNext.textContent = "New trip on Monday: " + getJourneyContinent(1);
+  }
+
+  function showToast(message) {
+    elements.toast.textContent = message;
+    elements.toast.hidden = false;
+    bounceClass(elements.toast, "is-visible", 4200);
+    window.clearTimeout(showToast.timeoutId);
+    showToast.timeoutId = window.setTimeout(function () {
+      elements.toast.hidden = true;
+    }, 4500);
   }
 
   init();
