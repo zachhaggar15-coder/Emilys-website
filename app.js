@@ -18,6 +18,62 @@
     "60": 60,
   };
   var challengeSize = 10;
+  var shopStorageKey = "capitalCards.shop.v1";
+  var heartRewards = {
+    correct: 5,
+    correctWithHint: 3,
+    streakBonus: 10,
+    roundComplete: 10,
+    perfectDaily: 50,
+  };
+  var shopCategories = [
+    {
+      id: "theme",
+      label: "Themes",
+      copy: "Repaint the whole game in a new colour palette.",
+    },
+    {
+      id: "effect",
+      label: "Celebrations",
+      copy: "Choose what rains down when you hit a streak or ace a round.",
+    },
+    {
+      id: "buddy",
+      label: "Study buddies",
+      copy: "A little friend who sits on your card and cheers you on.",
+    },
+  ];
+  var shopItems = [
+    { id: "theme-ocean", category: "theme", name: "Ocean Breeze", price: 0, icon: "🌊", swatch: ["#0f766e", "#d9f5f0", "#f4f9fc"] },
+    { id: "theme-strawberry", category: "theme", name: "Strawberry Milk", price: 60, icon: "🍓", swatch: ["#db2777", "#fce7f3", "#fff5f9"] },
+    { id: "theme-lavender", category: "theme", name: "Lavender Dream", price: 80, icon: "💜", swatch: ["#7c3aed", "#ede9fe", "#faf7ff"] },
+    { id: "theme-peach", category: "theme", name: "Peach Sorbet", price: 80, icon: "🍑", swatch: ["#ea580c", "#ffedd5", "#fff8f1"] },
+    { id: "theme-matcha", category: "theme", name: "Matcha Latte", price: 100, icon: "🍵", swatch: ["#4d7c0f", "#ecfccb", "#fbfef5"] },
+    { id: "theme-cotton-candy", category: "theme", name: "Cotton Candy", price: 150, icon: "🍭", swatch: ["#c026d3", "#e0f2fe", "#fdf4ff"] },
+    { id: "effect-confetti", category: "effect", name: "Confetti", price: 0, icon: "🎊" },
+    { id: "effect-hearts", category: "effect", name: "Love hearts", price: 40, icon: "💕", pieces: ["💖", "💕", "💗", "💓"] },
+    { id: "effect-stars", category: "effect", name: "Shooting stars", price: 50, icon: "⭐", pieces: ["⭐", "🌟", "✨", "💫"] },
+    { id: "effect-petals", category: "effect", name: "Cherry blossoms", price: 70, icon: "🌸", pieces: ["🌸", "💮", "🌷"] },
+    { id: "effect-butterflies", category: "effect", name: "Butterflies", price: 90, icon: "🦋", pieces: ["🦋", "🦋", "✨"] },
+    { id: "effect-kittens", category: "effect", name: "Kitten shower", price: 120, icon: "🐱", pieces: ["🐱", "😻", "🐾", "😸"] },
+    { id: "buddy-none", category: "buddy", name: "No buddy", price: 0, icon: "🫥" },
+    { id: "buddy-kitty", category: "buddy", name: "Kitty", price: 40, icon: "🐱" },
+    { id: "buddy-bunny", category: "buddy", name: "Bunny", price: 60, icon: "🐰" },
+    { id: "buddy-frog", category: "buddy", name: "Froggy", price: 60, icon: "🐸" },
+    { id: "buddy-penguin", category: "buddy", name: "Penguin", price: 80, icon: "🐧" },
+    { id: "buddy-bear", category: "buddy", name: "Teddy", price: 80, icon: "🧸" },
+    { id: "buddy-unicorn", category: "buddy", name: "Unicorn", price: 150, icon: "🦄" },
+  ];
+  var defaultEquipped = {
+    theme: "theme-ocean",
+    effect: "effect-confetti",
+    buddy: "buddy-none",
+  };
+  var buddyLines = {
+    correct: ["Yay!", "So smart!", "You got it!", "Wow 💕", "Genius!", "Go you!"],
+    wrong: ["It's okay!", "Next one!", "Almost!", "You've got this", "No worries 💕"],
+    streak: ["On fire!", "Unstoppable!", "Superstar!"],
+  };
   var mapPathById = {};
   var mapCenterById = {};
   var svgNamespace = "http://www.w3.org/2000/svg";
@@ -85,6 +141,8 @@
     correctByContinent: {},
     perfectChallengeEarned: false,
     mapCollapsed: false,
+    shopCategory: "theme",
+    shop: loadShop(),
   };
 
   var elements = {
@@ -140,7 +198,19 @@
     summaryReviewButton: document.getElementById("summary-review-button"),
     summaryNewRoundButton: document.getElementById("summary-new-round-button"),
     celebrationLayer: document.getElementById("celebration-layer"),
-    openingSplash: document.getElementById("opening-splash"),
+    heartWallet: document.getElementById("heart-wallet"),
+    heartCount: document.getElementById("heart-count"),
+    heartPopLayer: document.getElementById("heart-pop-layer"),
+    shopButton: document.getElementById("shop-button"),
+    shopOverlay: document.getElementById("shop-overlay"),
+    shopCloseButton: document.getElementById("shop-close-button"),
+    shopHeartCount: document.getElementById("shop-heart-count"),
+    shopTabs: document.getElementById("shop-tabs"),
+    shopCategoryCopy: document.getElementById("shop-category-copy"),
+    shopGrid: document.getElementById("shop-grid"),
+    cardBuddy: document.getElementById("card-buddy"),
+    cardBuddyFace: document.getElementById("card-buddy-face"),
+    cardBuddyBubble: document.getElementById("card-buddy-bubble"),
   };
 
   var encouragement = {
@@ -176,7 +246,8 @@
     renderPopulationControls();
     renderSessionControls();
     bindEvents();
-    scheduleOpeningSplash();
+    applyEquippedItems();
+    renderHearts();
     renderMapCollapseState();
     renderCountryBrowser();
     startRound();
@@ -237,6 +308,19 @@
       closeRoundSummary();
       updateActiveSessionMode();
       startRound();
+    });
+
+    elements.shopButton.addEventListener("click", openShop);
+    elements.shopCloseButton.addEventListener("click", closeShop);
+    elements.shopOverlay.addEventListener("click", function (event) {
+      if (event.target === elements.shopOverlay) {
+        closeShop();
+      }
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && !elements.shopOverlay.hidden) {
+        closeShop();
+      }
     });
   }
 
@@ -896,8 +980,13 @@
       elements.feedbackText.textContent = getCorrectMessage();
       elements.motivationText.textContent = getStreakMessage();
       markChoice(choiceButton, true);
+      earnHearts(state.hintShown ? heartRewards.correctWithHint : heartRewards.correct);
       if (state.streak > 0 && state.streak % 5 === 0) {
+        earnHearts(heartRewards.streakBonus, "streak bonus");
         celebrate();
+        buddyReact("streak");
+      } else {
+        buddyReact("correct");
       }
     } else {
       state.streak = 0;
@@ -907,6 +996,7 @@
       elements.motivationText.textContent = "Answer: " + getExpectedAnswer() + ". Keep going.";
       markChoice(choiceButton, false);
       markCorrectChoice();
+      buddyReact("wrong");
     }
 
     updateStats();
@@ -959,7 +1049,10 @@
 
     if (state.sessionMode === "challenge" && state.deck.length && state.score === state.deck.length) {
       state.perfectChallengeEarned = true;
+      earnHearts(heartRewards.perfectDaily, "perfect daily");
       celebrate();
+    } else if (reason !== "time" && state.history.length) {
+      earnHearts(heartRewards.roundComplete, "round complete");
     }
 
     elements.feedbackText.textContent = reason === "time"
@@ -1286,22 +1379,31 @@
     return "Map Starter";
   }
 
-  function celebrate() {
-    var colors = ["#0f766e", "#14b8a6", "#f97316", "#facc15", "#2563eb"];
+  function celebrate(effectId) {
+    var colors = ["#0f766e", "#14b8a6", "#f97316", "#facc15", "#2563eb", "#ec4899"];
+    var effect = getShopItem(effectId || state.shop.equipped.effect);
+    var emojiPieces = effect && effect.pieces;
     elements.celebrationLayer.innerHTML = "";
     for (var i = 0; i < 26; i += 1) {
       var piece = document.createElement("span");
-      piece.className = "confetti-piece";
       piece.style.left = 8 + Math.random() * 84 + "%";
-      piece.style.background = colors[i % colors.length];
-      piece.style.animationDelay = Math.random() * 0.18 + "s";
-      piece.style.transform = "rotate(" + Math.random() * 180 + "deg)";
+      piece.style.animationDelay = Math.random() * 0.25 + "s";
+      if (emojiPieces) {
+        piece.className = "emoji-piece";
+        piece.textContent = emojiPieces[i % emojiPieces.length];
+        piece.style.fontSize = 1.3 + Math.random() * 1.2 + "rem";
+      } else {
+        piece.className = "confetti-piece";
+        piece.style.background = colors[i % colors.length];
+        piece.style.transform = "rotate(" + Math.random() * 180 + "deg)";
+      }
       elements.celebrationLayer.appendChild(piece);
     }
 
-    window.setTimeout(function () {
+    window.clearTimeout(celebrate.timeoutId);
+    celebrate.timeoutId = window.setTimeout(function () {
       elements.celebrationLayer.innerHTML = "";
-    }, 1300);
+    }, emojiPieces ? 1900 : 1300);
   }
 
   function seededShuffle(items, seed) {
@@ -1370,17 +1472,242 @@
     return items[Math.floor(Math.random() * items.length)];
   }
 
-  function scheduleOpeningSplash() {
-    if (!elements.openingSplash) {
-      return;
+  function loadShop() {
+    var saved = null;
+    try {
+      saved = JSON.parse(window.localStorage.getItem(shopStorageKey));
+    } catch (error) {
+      saved = null;
     }
 
+    var shop = {
+      hearts: 0,
+      owned: {},
+      equipped: Object.assign({}, defaultEquipped),
+    };
+    if (saved && typeof saved === "object") {
+      shop.hearts = Math.max(0, Number(saved.hearts) || 0);
+      shop.owned = saved.owned && typeof saved.owned === "object" ? saved.owned : {};
+      Object.keys(defaultEquipped).forEach(function (category) {
+        var itemId = saved.equipped && saved.equipped[category];
+        if (itemId && getShopItem(itemId)) {
+          shop.equipped[category] = itemId;
+        }
+      });
+    }
+    return shop;
+  }
+
+  function saveShop() {
+    try {
+      window.localStorage.setItem(shopStorageKey, JSON.stringify(state.shop));
+    } catch (error) {
+      // Storage can be blocked (private browsing). The shop still works for this visit.
+    }
+  }
+
+  function getShopItem(itemId) {
+    return shopItems.find(function (item) {
+      return item.id === itemId;
+    });
+  }
+
+  function isOwned(item) {
+    return item.price === 0 || Boolean(state.shop.owned[item.id]);
+  }
+
+  function earnHearts(amount, reason) {
+    if (!amount) {
+      return;
+    }
+    state.shop.hearts += amount;
+    saveShop();
+    renderHearts();
+    showHeartPop(amount, reason);
+  }
+
+  function renderHearts() {
+    elements.heartCount.textContent = String(state.shop.hearts);
+    elements.shopHeartCount.textContent = String(state.shop.hearts);
+  }
+
+  function showHeartPop(amount, reason) {
+    var pop = document.createElement("span");
+    pop.className = "heart-pop";
+    pop.textContent = "+" + amount + " 💖" + (reason ? " " + reason : "");
+    var rect = elements.heartWallet.getBoundingClientRect();
+    pop.style.left = rect.left + rect.width / 2 + "px";
+    pop.style.top = rect.bottom + 4 + "px";
+    elements.heartPopLayer.appendChild(pop);
+
+    elements.heartWallet.classList.remove("is-bumping");
+    void elements.heartWallet.offsetWidth;
+    elements.heartWallet.classList.add("is-bumping");
+
     window.setTimeout(function () {
-      elements.openingSplash.classList.add("is-hiding");
-      window.setTimeout(function () {
-        elements.openingSplash.remove();
-      }, 420);
-    }, 3000);
+      pop.remove();
+    }, 1400);
+  }
+
+  function applyEquippedItems() {
+    var theme = state.shop.equipped.theme.replace("theme-", "");
+    document.body.dataset.theme = theme;
+
+    var buddy = getShopItem(state.shop.equipped.buddy);
+    var hasBuddy = buddy && buddy.id !== "buddy-none";
+    elements.cardBuddy.hidden = !hasBuddy;
+    elements.cardBuddyFace.textContent = hasBuddy ? buddy.icon : "";
+    elements.cardBuddyBubble.textContent = "";
+    elements.cardBuddy.classList.remove("is-talking");
+  }
+
+  function buddyReact(mood) {
+    if (elements.cardBuddy.hidden) {
+      return;
+    }
+    elements.cardBuddyBubble.textContent = randomItem(buddyLines[mood]);
+    elements.cardBuddy.classList.remove("is-happy", "is-sad", "is-talking");
+    void elements.cardBuddy.offsetWidth;
+    elements.cardBuddy.classList.add(mood === "wrong" ? "is-sad" : "is-happy", "is-talking");
+
+    window.clearTimeout(buddyReact.timeoutId);
+    buddyReact.timeoutId = window.setTimeout(function () {
+      elements.cardBuddy.classList.remove("is-talking");
+    }, 1800);
+  }
+
+  function openShop() {
+    renderShop();
+    elements.shopOverlay.hidden = false;
+    elements.shopCloseButton.focus();
+  }
+
+  function closeShop() {
+    elements.shopOverlay.hidden = true;
+    elements.shopButton.focus();
+  }
+
+  function renderShop() {
+    renderHearts();
+
+    elements.shopTabs.innerHTML = "";
+    shopCategories.forEach(function (category) {
+      var tab = document.createElement("button");
+      tab.type = "button";
+      tab.className = "chip";
+      tab.setAttribute("role", "tab");
+      tab.textContent = category.label;
+      tab.setAttribute("aria-pressed", String(category.id === state.shopCategory));
+      tab.setAttribute("aria-selected", String(category.id === state.shopCategory));
+      tab.addEventListener("click", function () {
+        state.shopCategory = category.id;
+        renderShop();
+      });
+      elements.shopTabs.appendChild(tab);
+    });
+
+    var activeCategory = shopCategories.find(function (category) {
+      return category.id === state.shopCategory;
+    });
+    elements.shopCategoryCopy.textContent = activeCategory ? activeCategory.copy : "";
+
+    elements.shopGrid.innerHTML = "";
+    shopItems
+      .filter(function (item) {
+        return item.category === state.shopCategory;
+      })
+      .forEach(function (item) {
+        elements.shopGrid.appendChild(getShopItemCard(item));
+      });
+  }
+
+  function getShopItemCard(item) {
+    var owned = isOwned(item);
+    var equipped = state.shop.equipped[item.category] === item.id;
+    var card = document.createElement("article");
+    card.className = "shop-item" + (equipped ? " is-equipped" : "") + (owned ? " is-owned" : "");
+
+    var preview = document.createElement("div");
+    preview.className = "shop-item-preview";
+    if (item.swatch) {
+      preview.style.background =
+        "linear-gradient(135deg, " + item.swatch[2] + " 0 40%, " + item.swatch[1] + " 40% 70%, " + item.swatch[0] + " 70% 100%)";
+    }
+    var icon = document.createElement("span");
+    icon.className = "shop-item-icon";
+    icon.textContent = item.icon;
+    preview.appendChild(icon);
+    card.appendChild(preview);
+
+    var name = document.createElement("h3");
+    name.textContent = item.name;
+    card.appendChild(name);
+
+    var price = document.createElement("span");
+    price.className = "shop-item-price";
+    price.textContent = owned ? (item.price === 0 ? "Free" : "Owned") : item.price + " 💖";
+    card.appendChild(price);
+
+    var button = document.createElement("button");
+    button.type = "button";
+    if (equipped) {
+      button.className = "shop-action is-equipped";
+      button.textContent = "Equipped ✓";
+      button.disabled = true;
+    } else if (owned) {
+      button.className = "shop-action";
+      button.textContent = "Use this";
+      button.addEventListener("click", function () {
+        equipItem(item);
+      });
+    } else if (state.shop.hearts >= item.price) {
+      button.className = "shop-action is-buy";
+      button.textContent = "Buy";
+      button.addEventListener("click", function () {
+        buyItem(item);
+      });
+    } else {
+      button.className = "shop-action";
+      button.textContent = "Need " + (item.price - state.shop.hearts) + " more";
+      button.disabled = true;
+    }
+    card.appendChild(button);
+
+    if (item.category === "effect") {
+      var previewButton = document.createElement("button");
+      previewButton.type = "button";
+      previewButton.className = "shop-preview-link";
+      previewButton.textContent = "Preview";
+      previewButton.addEventListener("click", function () {
+        celebrate(item.id);
+      });
+      card.appendChild(previewButton);
+    }
+
+    return card;
+  }
+
+  function buyItem(item) {
+    if (isOwned(item) || state.shop.hearts < item.price) {
+      return;
+    }
+    state.shop.hearts -= item.price;
+    state.shop.owned[item.id] = true;
+    equipItem(item);
+    celebrate(item.category === "effect" ? item.id : null);
+  }
+
+  function equipItem(item) {
+    if (!isOwned(item)) {
+      return;
+    }
+    state.shop.equipped[item.category] = item.id;
+    saveShop();
+    applyEquippedItems();
+    renderShop();
+    if (item.category === "buddy") {
+      buddyReact("correct");
+    }
   }
 
   init();
