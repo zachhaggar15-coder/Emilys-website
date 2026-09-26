@@ -1644,6 +1644,40 @@ button:focus-visible {
   font-size: 1.6rem;
 }
 
+.pet-name-row[hidden],
+.pet-name-form[hidden] {
+  display: none;
+}
+
+.pet-name-form {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0;
+}
+
+.pet-name-form label {
+  color: var(--sea-strong);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.pet-name-line {
+  display: flex;
+  gap: 8px;
+}
+
+.pet-name-line input {
+  min-width: 0;
+  max-width: 220px;
+  min-height: 42px;
+  border-color: var(--heart);
+}
+
+.pet-name-line button {
+  min-height: 42px;
+  padding: 0 14px;
+}
+
 .pet-rename {
   border: 0;
   border-radius: 999px;

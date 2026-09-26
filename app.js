@@ -268,6 +268,11 @@
     shopGrid: document.getElementById("shop-grid"),
     cardBuddy: document.getElementById("card-buddy"),
     petName: document.getElementById("pet-name"),
+    petNameRow: document.getElementById("pet-name-row"),
+    petNameForm: document.getElementById("pet-name-form"),
+    petNamePrompt: document.getElementById("pet-name-prompt"),
+    petNameInput: document.getElementById("pet-name-input"),
+    petNameCancel: document.getElementById("pet-name-cancel"),
     petRenameButton: document.getElementById("pet-rename-button"),
     petStageLabel: document.getElementById("pet-stage-label"),
     petGrowthFill: document.getElementById("pet-growth-fill"),
@@ -401,7 +406,13 @@
     });
 
     elements.shopButton.addEventListener("click", openShop);
-    elements.petRenameButton.addEventListener("click", renamePet);
+    elements.petRenameButton.addEventListener("click", function () {
+      openNameForm();
+      elements.petNameInput.focus();
+      elements.petNameInput.select();
+    });
+    elements.petNameForm.addEventListener("submit", savePetName);
+    elements.petNameCancel.addEventListener("click", closeNameForm);
     elements.petStage.addEventListener("click", function () {
       if (getPetStage().id.indexOf("egg") === 0) {
         petSay(getPetStage().id === "egg" ? "*wobble wobble*" : "*crack*");
@@ -1599,7 +1610,7 @@
       owned: {},
       equipped: Object.assign({}, defaultEquipped),
       pet: {
-        name: "Hamish",
+        name: "",
         bornOn: getLocalDateKey(),
         happiness: 80,
         happinessAt: Date.now(),
@@ -1622,6 +1633,10 @@
       }
       if (saved.pet && typeof saved.pet === "object") {
         Object.assign(shop.pet, saved.pet);
+        if (!saved.pet.nameChosen && shop.pet.name === "Hamish") {
+          // "Hamish" was only a placeholder in an earlier version, so let her choose the real name.
+          shop.pet.name = "";
+        }
       }
       if (saved.journey && typeof saved.journey === "object") {
         Object.assign(shop.journey, saved.journey);
@@ -1923,7 +1938,7 @@
 
   function getPetMood() {
     var happiness = getPetHappiness();
-    var name = state.shop.pet.name;
+    var name = getPetName();
     if (happiness >= happyBonusThreshold) {
       return { id: "happy", text: "Over the moo-n 💕 Bonus +1 heart for every correct answer!" };
     }
@@ -1931,7 +1946,7 @@
       return { id: "content", text: "Content and cosy. A snack would make " + name + " extra happy." };
     }
     if (happiness >= 15) {
-      return { id: "sad", text: name + " is a little peckish... maybe a carrot?" };
+      return { id: "sad", text: capitalise(name) + " is a little peckish... maybe a carrot?" };
     }
     return { id: "sleepy", text: name + " is sleepy and hungry. A snack will help!" };
   }
@@ -1953,13 +1968,15 @@
       // Start the happiness clock from the moment the calf hatches.
       pet.happiness = 85;
       pet.happinessAt = Date.now();
-      showToast("🐣 Your egg hatched! Say hello to " + pet.name + ", your baby highland coo!");
+      showToast(pet.name
+        ? "🐣 Your egg hatched! Say hello to " + pet.name + ", your baby highland coo!"
+        : "🐣 Your egg hatched! Your baby highland coo needs a name 💕");
       celebrate("effect-hearts");
     } else if (stage.id === "adult") {
-      showToast("🎉 " + pet.name + " is all grown up! 90 days of love.");
+      showToast("🎉 " + capitalise(getPetName()) + " is all grown up! 90 days of love.");
       celebrate("effect-hearts");
     } else if (!isFirstLoad || stage.id !== "egg") {
-      showToast("🌱 " + pet.name + " grew into a " + stage.label.toLowerCase() + "!");
+      showToast("🌱 " + capitalise(getPetName()) + " grew into a " + stage.label.toLowerCase() + "!");
     }
     saveShop();
     renderCardBuddy();
@@ -1995,7 +2012,10 @@
     var happiness = getPetHappiness();
     var mood = getPetMood();
 
-    elements.petName.textContent = pet.name;
+    elements.petName.textContent = pet.name || "Your coo";
+    if (!pet.name && elements.petNameForm.hidden) {
+      openNameForm();
+    }
     elements.petStageLabel.textContent = stage.label + " · Day " + Math.min(age + 1, petGrowDays) + " of " + petGrowDays;
     elements.petGrowthFill.style.width = Math.min(100, (age / petGrowDays) * 100) + "%";
     elements.petGrowthNote.textContent = age >= petGrowDays
@@ -2127,19 +2147,45 @@
     }, duration);
   }
 
-  function renamePet() {
-    var name = window.prompt("What should your highland coo be called?", state.shop.pet.name);
-    if (name === null) {
-      return;
-    }
-    name = name.trim().slice(0, 20);
+  function getPetName() {
+    return state.shop.pet.name || "your coo";
+  }
+
+  function capitalise(text) {
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+
+  function openNameForm() {
+    var hasName = Boolean(state.shop.pet.name);
+    elements.petNamePrompt.textContent = hasName
+      ? "Give " + state.shop.pet.name + " a new name"
+      : "What will you call your coo? 💕";
+    elements.petNameInput.value = state.shop.pet.name;
+    elements.petNameCancel.hidden = !hasName;
+    elements.petNameRow.hidden = true;
+    elements.petNameForm.hidden = false;
+  }
+
+  function closeNameForm() {
+    elements.petNameForm.hidden = true;
+    elements.petNameRow.hidden = false;
+  }
+
+  function savePetName(event) {
+    event.preventDefault();
+    var name = elements.petNameInput.value.trim().slice(0, 20);
     if (!name) {
+      elements.petNameInput.focus();
       return;
     }
+    var isFirstName = !state.shop.pet.name;
     state.shop.pet.name = name;
+    state.shop.pet.nameChosen = true;
     saveShop();
+    closeNameForm();
     renderPet();
-    petSay("I love it! 💕");
+    petSay(isFirstName ? "I'm " + name + "! 💕" : "I love it! 💕");
+    bounceClass(elements.petArt, "is-hopping", 650);
   }
 
   function getWeekStart(date) {
@@ -2198,7 +2244,7 @@
         var outfit = getJourneyOutfit(continent);
         if (outfit) {
           state.shop.owned[outfit.id] = true;
-          message += " and a " + outfit.name + " for " + state.shop.pet.name + "! Find it in Coo outfits.";
+          message += " and a " + outfit.name + " for " + getPetName() + "! Find it in Coo outfits.";
         }
       }
       showToast(message);
