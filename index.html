@@ -55,10 +55,18 @@
           <div class="pet-header">
             <div>
               <span class="control-label">Your highland coo</span>
-              <h2 class="pet-name-row">
-                <span id="pet-name">Hamish</span>
+              <h2 class="pet-name-row" id="pet-name-row">
+                <span id="pet-name">Your coo</span>
                 <button class="pet-rename" id="pet-rename-button" type="button" aria-label="Rename your cow">✏️</button>
               </h2>
+              <form class="pet-name-form" id="pet-name-form" hidden>
+                <label for="pet-name-input" id="pet-name-prompt">What will you call your coo? 💕</label>
+                <div class="pet-name-line">
+                  <input id="pet-name-input" maxlength="20" autocomplete="off" placeholder="Type a name" />
+                  <button class="primary-button" type="submit">Save</button>
+                  <button class="ghost-button" id="pet-name-cancel" type="button">Cancel</button>
+                </div>
+              </form>
               <span class="pet-stage-label" id="pet-stage-label">Egg · Day 1 of 90</span>
             </div>
             <div class="pet-growth" aria-label="Growth progress">
