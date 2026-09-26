@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
   --ink: #172033;
-  --muted: #64748b;
+  --muted: #556377;
   --line: #d9e4ef;
   --paper: #ffffff;
   --cloud: #f4f9fc;
@@ -20,6 +20,7 @@
   --tint: #f8fffd;
   --page-wash: rgba(37, 99, 235, 0.08);
   --heart: #ec4899;
+  --heart-ink: #be185d;
   --heart-soft: #fce7f3;
 }
 
@@ -45,8 +46,8 @@ body[data-theme="strawberry"] {
   --muted: #8a5a74;
   --line: #f6d3e3;
   --cloud: #fff5f9;
-  --sea: #db2777;
-  --sea-strong: #be185d;
+  --sea: #be185d;
+  --sea-strong: #9d174d;
   --sea-soft: #fce7f3;
   --blue: #f472b6;
   --coral: #fb7185;
@@ -79,8 +80,8 @@ body[data-theme="peach"] {
   --muted: #8a6552;
   --line: #f7dcc8;
   --cloud: #fff8f1;
-  --sea: #ea580c;
-  --sea-strong: #c2410c;
+  --sea: #c2410c;
+  --sea-strong: #9a3412;
   --sea-soft: #ffedd5;
   --blue: #fb923c;
   --coral: #f472b6;
@@ -113,8 +114,8 @@ body[data-theme="cotton-candy"] {
   --muted: #76628a;
   --line: #ecd8f3;
   --cloud: #fdf4ff;
-  --sea: #c026d3;
-  --sea-strong: #a21caf;
+  --sea: #a21caf;
+  --sea-strong: #86198f;
   --sea-soft: #e0f2fe;
   --blue: #38bdf8;
   --coral: #f472b6;
@@ -730,7 +731,14 @@ button:focus-visible {
 }
 
 /* Flag image fallback styling */
+.flag-display {
+  overflow: hidden;
+}
+
 .flag-img {
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.2;
   max-width: 100%;
   max-height: 100%;
   display: block;
@@ -1239,7 +1247,7 @@ button:focus-visible {
   border-radius: 999px;
   padding: 0 18px;
   color: #fff;
-  background: linear-gradient(135deg, var(--sea), var(--heart));
+  background: linear-gradient(135deg, var(--sea-strong), var(--heart-ink));
   box-shadow: var(--shadow);
   font-weight: 900;
   transition: transform 160ms ease;
@@ -1260,7 +1268,7 @@ button:focus-visible {
   position: fixed;
   border-radius: 999px;
   padding: 4px 10px;
-  color: var(--heart);
+  color: var(--heart-ink);
   background: #fff;
   box-shadow: 0 8px 20px rgba(236, 72, 153, 0.25);
   font-size: 0.9rem;
@@ -1495,7 +1503,7 @@ button:focus-visible {
   align-items: center;
   border-radius: 999px;
   padding: 8px 14px;
-  color: var(--heart);
+  color: var(--heart-ink);
   background: var(--heart-soft);
   font-weight: 850;
 }
@@ -1683,6 +1691,8 @@ button:focus-visible {
 }
 
 .pet-rename {
+  min-width: 36px;
+  min-height: 36px;
   border: 0;
   border-radius: 999px;
   padding: 4px 6px;
@@ -1933,7 +1943,7 @@ button:focus-visible {
 }
 
 .pet-happiness-top strong {
-  color: var(--heart);
+  color: var(--heart-ink);
   font-size: 1.1rem;
   font-weight: 950;
 }
@@ -1988,7 +1998,7 @@ button:focus-visible {
 }
 
 .snack-price {
-  color: var(--heart);
+  color: var(--heart-ink);
   font-size: 0.75rem;
   font-weight: 950;
 }
@@ -2095,7 +2105,7 @@ button:focus-visible {
 }
 
 .journey-rewards li strong {
-  color: var(--heart);
+  color: var(--heart-ink);
   font-weight: 900;
 }
 
@@ -2133,6 +2143,7 @@ button:focus-visible {
 }
 
 .toast {
+  pointer-events: none;
   position: fixed;
   bottom: 22px;
   left: 50%;
@@ -2712,6 +2723,38 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  /* On phones the flashcard comes before the deck settings and side panels. */
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .intro {
+    order: 1;
+  }
+
+  .cow-corner {
+    order: 2;
+  }
+
+  .study-layout {
+    order: 3;
+    margin-bottom: 22px;
+  }
+
+  .controls {
+    order: 4;
+  }
+
+  .browser-panel {
+    order: 5;
+    margin-top: 0;
+  }
+
+  .card-stage {
+    order: -1;
+  }
+
   .intro,
   .study-layout,
   .control-grid {
@@ -2815,14 +2858,22 @@ button:focus-visible {
     padding: 20px 0;
   }
 
-  .session-summary,
   .choice-answer,
   .answer-line {
     grid-template-columns: 1fr;
   }
 
   .session-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
+  }
+
+  .session-summary > div {
+    padding: 10px 6px;
+  }
+
+  .metric-value {
+    font-size: 1.5rem;
   }
 
   .browser-header,
