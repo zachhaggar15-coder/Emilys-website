@@ -1874,8 +1874,16 @@
     pop.className = "heart-pop";
     pop.textContent = "+" + amount + " 💖" + (reason ? " " + reason : "");
     var rect = elements.heartWallet.getBoundingClientRect();
-    pop.style.left = rect.left + rect.width / 2 + "px";
-    pop.style.top = rect.bottom + 4 + "px";
+    var left = rect.left + rect.width / 2;
+    var top = rect.bottom + 4;
+    if (!isOnScreen(rect)) {
+      // The counter is scrolled out of view, so pop the hearts over the card instead.
+      var cardRect = elements.cardFrame.getBoundingClientRect();
+      left = cardRect.left + cardRect.width / 2;
+      top = isOnScreen(cardRect) ? Math.max(12, cardRect.top + 56) : 60;
+    }
+    pop.style.left = left + "px";
+    pop.style.top = top + "px";
     elements.heartPopLayer.appendChild(pop);
 
     elements.heartWallet.classList.remove("is-bumping");
@@ -1885,6 +1893,10 @@
     window.setTimeout(function () {
       pop.remove();
     }, 1400);
+  }
+
+  function isOnScreen(rect) {
+    return rect.bottom > 0 && rect.top < window.innerHeight;
   }
 
   function applyEquippedItems() {
