@@ -43,6 +43,16 @@
       copy: "A little friend who sits on your card and cheers you on.",
     },
     {
+      id: "home",
+      label: "Coo homes",
+      copy: "Pick where your coo lives. The background changes behind your coo.",
+    },
+    {
+      id: "friend",
+      label: "Friends",
+      copy: "Once your coo is all grown up (day 90), a little friend can move in too.",
+    },
+    {
       id: "cow",
       label: "Coo outfits",
       copy: "Dress up your highland cow. One hat, one pair of glasses and one neck piece at a time. Tap again to take it off.",
@@ -69,6 +79,15 @@
     { id: "buddy-penguin", category: "buddy", name: "Penguin", price: 80, icon: "🐧" },
     { id: "buddy-bear", category: "buddy", name: "Teddy", price: 80, icon: "🧸" },
     { id: "buddy-unicorn", category: "buddy", name: "Unicorn", price: 150, icon: "🦄" },
+    { id: "home-meadow", category: "home", name: "Sunny meadow", price: 0, icon: "🌼" },
+    { id: "home-glen", category: "home", name: "Highland glen", price: 60, icon: "⛰️" },
+    { id: "home-barn", category: "home", name: "Cosy barn", price: 80, icon: "🛖" },
+    { id: "home-beach", category: "home", name: "Seaside", price: 100, icon: "🏖️" },
+    { id: "home-snow", category: "home", name: "Snowy field", price: 120, icon: "❄️" },
+    { id: "friend-none", category: "friend", name: "Just us", price: 0, icon: "💕" },
+    { id: "friend-sheep", category: "friend", name: "Woolly sheep", price: 0, icon: "🐑", grownOnly: true },
+    { id: "friend-chick", category: "friend", name: "Little chick", price: 60, icon: "🐥", grownOnly: true },
+    { id: "friend-piglet", category: "friend", name: "Piglet", price: 80, icon: "🐷", grownOnly: true },
     { id: "cow-bow", category: "cow", slot: "hat", name: "Pink bow", price: 30 },
     { id: "cow-bell", category: "cow", slot: "neck", name: "Cow bell", price: 30 },
     { id: "cow-bow-tie", category: "cow", slot: "neck", name: "Bow tie", price: 40 },
@@ -111,7 +130,13 @@
     pet: ["Moo!", "Hi! 💕", "*swishes tail*", "Hehe", "Love you!"],
     correct: ["Moo-velous!", "So clever!", "Yay!", "Genius coo-mate!"],
     wrong: ["It's okay!", "Next one!", "Moo worries 💕"],
+    streak: ["Streak! 🔥", "Moo-nstoppable!", "Yeehaw! 🎉"],
+    tricky: ["Ooh, a tricky one!", "Hmm, this one's rare!", "Ooh, niche!"],
+    hello: ["Welcome back! 💕", "Hi hi! 👋", "Moo! Missed you 💕", "Yay, you're here!"],
   };
+  var backupPrefix = "COO1:";
+  var backupReminderDays = 14;
+  var birthdayEveryDays = 30;
   // Each week has a different continent to explore, in this order.
   var journeyOrder = ["Europe", "Asia", "Africa", "North America", "South America", "Oceania"];
   var journeyTiers = [
@@ -123,6 +148,8 @@
     theme: "theme-ocean",
     effect: "effect-confetti",
     buddy: "buddy-cow",
+    home: "home-meadow",
+    friend: "friend-none",
     "cow-hat": "",
     "cow-face": "",
     "cow-neck": "",
@@ -131,6 +158,7 @@
     correct: ["Yay!", "So smart!", "You got it!", "Wow 💕", "Genius!", "Go you!"],
     wrong: ["It's okay!", "Next one!", "Almost!", "You've got this", "No worries 💕"],
     streak: ["On fire!", "Unstoppable!", "Superstar!"],
+    tricky: ["Ooh, a tricky one!", "Hmm, a rare one!"],
   };
   var mapPathById = {};
   var mapCenterById = {};
@@ -200,6 +228,9 @@
     perfectChallengeEarned: false,
     mapCollapsed: false,
     shopCategory: "theme",
+    mapTappedId: null,
+    calendarMonth: null,
+    selectedDiaryDay: null,
     shop: loadShop(),
   };
 
@@ -293,6 +324,34 @@
     journeyPlayButton: document.getElementById("journey-play-button"),
     journeyNext: document.getElementById("journey-next"),
     toast: document.getElementById("toast"),
+    petScene: document.getElementById("pet-scene"),
+    petFriend: document.getElementById("pet-friend"),
+    mapShell: document.querySelector(".map-shell"),
+    mapLegend: document.querySelector(".map-legend"),
+    mapAnswer: document.getElementById("map-answer"),
+    mapAnswerCopy: document.getElementById("map-answer-copy"),
+    soundButton: document.getElementById("sound-button"),
+    soundIcon: document.getElementById("sound-icon"),
+    soundLabel: document.getElementById("sound-label"),
+    backupButton: document.getElementById("backup-button"),
+    backupOverlay: document.getElementById("backup-overlay"),
+    backupCloseButton: document.getElementById("backup-close-button"),
+    backupCode: document.getElementById("backup-code"),
+    backupCopyButton: document.getElementById("backup-copy-button"),
+    backupCopyStatus: document.getElementById("backup-copy-status"),
+    backupLast: document.getElementById("backup-last"),
+    restoreCode: document.getElementById("restore-code"),
+    restoreButton: document.getElementById("restore-button"),
+    restoreStatus: document.getElementById("restore-status"),
+    scrapbookButton: document.getElementById("scrapbook-button"),
+    scrapbookOverlay: document.getElementById("scrapbook-overlay"),
+    scrapbookCloseButton: document.getElementById("scrapbook-close-button"),
+    scrapbookStats: document.getElementById("scrapbook-stats"),
+    calendarPrev: document.getElementById("calendar-prev"),
+    calendarNext: document.getElementById("calendar-next"),
+    calendarMonth: document.getElementById("calendar-month"),
+    calendarGrid: document.getElementById("calendar-grid"),
+    calendarDayDetail: document.getElementById("calendar-day-detail"),
     cardBuddyFace: document.getElementById("card-buddy-face"),
     cardBuddyBubble: document.getElementById("card-buddy-bubble"),
   };
@@ -330,9 +389,11 @@
     renderPopulationControls();
     renderSessionControls();
     bindEvents();
+    ensureEggInDiary();
     refreshPet(true);
     refreshJourney();
     applyEquippedItems();
+    renderSoundButton();
     renderHearts();
     renderSnacks();
     renderPet();
@@ -346,6 +407,8 @@
     renderMapCollapseState();
     renderCountryBrowser();
     startRound();
+    window.setTimeout(greetVisitor, 900);
+    window.setTimeout(maybeRemindBackup, 7000);
   }
 
   function bindEvents() {
@@ -406,6 +469,31 @@
     });
 
     elements.shopButton.addEventListener("click", openShop);
+    elements.soundButton.addEventListener("click", toggleSound);
+    elements.backupButton.addEventListener("click", openBackup);
+    elements.backupCloseButton.addEventListener("click", function () {
+      closeDialog(elements.backupOverlay, elements.backupButton);
+    });
+    elements.backupCopyButton.addEventListener("click", copyBackupCode);
+    elements.restoreButton.addEventListener("click", restoreFromCode);
+    elements.scrapbookButton.addEventListener("click", openScrapbook);
+    elements.scrapbookCloseButton.addEventListener("click", function () {
+      closeDialog(elements.scrapbookOverlay, elements.scrapbookButton);
+    });
+    elements.calendarPrev.addEventListener("click", function () {
+      moveCalendar(-1);
+    });
+    elements.calendarNext.addEventListener("click", function () {
+      moveCalendar(1);
+    });
+    [elements.backupOverlay, elements.scrapbookOverlay].forEach(function (overlay) {
+      overlay.addEventListener("click", function (event) {
+        if (event.target === overlay) {
+          overlay.hidden = true;
+        }
+      });
+    });
+    elements.countryMap.addEventListener("click", handleMapTap);
     elements.petRenameButton.addEventListener("click", function () {
       openNameForm();
       elements.petNameInput.focus();
@@ -421,6 +509,7 @@
       }
       petSay(randomItem(petLines.pet));
       bounceClass(elements.petArt, "is-hopping", 650);
+      playSound("moo");
     });
     elements.journeyPlayButton.addEventListener("click", function () {
       state.continent = getJourneyContinent();
@@ -438,9 +527,14 @@
       }
     });
     document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape" && !elements.shopOverlay.hidden) {
+      if (event.key !== "Escape") {
+        return;
+      }
+      if (!elements.shopOverlay.hidden) {
         closeShop();
       }
+      elements.backupOverlay.hidden = true;
+      elements.scrapbookOverlay.hidden = true;
     });
   }
 
@@ -625,6 +719,7 @@
     state.hasAnswered = false;
     state.hintShown = false;
     state.promptType = getPromptType();
+    state.mapTappedId = null;
 
     elements.cardFrame.classList.remove("answered", "is-correct", "is-wrong");
     elements.cardFrame.classList.toggle("is-flag-mode", state.promptType === "flag");
@@ -639,6 +734,12 @@
     renderAnswerControls();
     renderMap();
     updateStats();
+    if (state.current.populationTier === "niche") {
+      buddyReact("tricky");
+    } else if (elements.cardBuddy.classList.contains("is-talking")) {
+      elements.cardBuddy.classList.remove("is-talking");
+      renderCardBuddy();
+    }
 
     if (state.answerStyle === "type") {
       window.setTimeout(function () {
@@ -708,9 +809,11 @@
     elements.promptFlag.setAttribute("title", state.current.country + " flag");
     elements.promptFlag.innerHTML = getFlagMarkup(state.current);
     elements.promptText.textContent = prompt;
-    elements.promptHelper.textContent = isCountryPrompt
-      ? "Name the capital."
-      : "Name the country.";
+    elements.promptHelper.textContent = isMapMode()
+      ? (isCountryPrompt ? "Find it on the map." : "Tap its country on the map.")
+      : isCountryPrompt
+        ? "Name the capital."
+        : "Name the country.";
     elements.answerFlag.className = "flag-symbol";
     elements.answerFlag.setAttribute("title", state.current.country + " flag");
     elements.answerFlag.innerHTML = getFlagMarkup(state.current);
@@ -788,6 +891,9 @@
     if (state.roundEnded) {
       return "Round complete. Green countries were correct; red ones need review.";
     }
+    if (!state.hasAnswered && isMapMode()) {
+      return "The map is under your card. Tap the right country!";
+    }
     if (!state.hasAnswered) {
       return "Asked now: " + state.current.country + " turns grey and gets a label.";
     }
@@ -796,7 +902,7 @@
   }
 
   function getMapStatus(card) {
-    if (state.current && !state.roundEnded && !state.hasAnswered && state.current.id === card.id) {
+    if (state.current && !state.roundEnded && !state.hasAnswered && state.current.id === card.id && !isMapMode()) {
       return "current";
     }
     return state.mapStatusById[card.id] || "idle";
@@ -806,7 +912,8 @@
     var path = document.createElementNS(svgNamespace, "path");
     path.setAttribute("d", mapPathById[card.id]);
     path.setAttribute("fill-rule", "evenodd");
-    path.setAttribute("class", getMapClassName("map-country", status, isInDeck));
+    path.setAttribute("class", getMapClassName("map-country", status, isInDeck) + getTappedClass(card));
+    path.setAttribute("data-id", card.id);
     path.setAttribute("aria-label", getMapAriaLabel(card, status));
     path.appendChild(getMapTitle(card, status));
     elements.countryMap.appendChild(path);
@@ -821,14 +928,15 @@
     marker.setAttribute("cx", point.x.toFixed(2));
     marker.setAttribute("cy", point.y.toFixed(2));
     marker.setAttribute("r", getMarkerRadius(card));
-    marker.setAttribute("class", getMapClassName("map-marker", status, isInDeck));
+    marker.setAttribute("class", getMapClassName("map-marker", status, isInDeck) + getTappedClass(card));
+    marker.setAttribute("data-id", card.id);
     marker.setAttribute("aria-label", getMapAriaLabel(card, status));
     marker.appendChild(getMapTitle(card, status));
     elements.countryMap.appendChild(marker);
   }
 
   function renderCurrentMapPulse() {
-    if (!state.current || state.hasAnswered) {
+    if (!state.current || state.hasAnswered || isMapMode()) {
       return;
     }
     var point = getMapPoint(state.current);
@@ -842,6 +950,12 @@
     pulse.setAttribute("class", "map-pulse");
     elements.countryMap.appendChild(pulse);
     renderCurrentMapLabel(point);
+  }
+
+  function getTappedClass(card) {
+    return isMapMode() && state.hasAnswered && state.mapTappedId === card.id && state.mapTappedId !== state.current.id
+      ? " map-tapped"
+      : "";
   }
 
   function renderCurrentMapLabel(point) {
@@ -895,6 +1009,10 @@
   }
 
   function getMarkerRadius(card) {
+    if (isMapMode()) {
+      // Bigger dots so tiny countries are easy to tap.
+      return state.continent === "Whole World" ? "6.5" : "4.6";
+    }
     if (state.current && state.current.id === card.id) {
       return "5.6";
     }
@@ -969,11 +1087,56 @@
 
   function renderAnswerControls() {
     var useChoices = state.answerStyle === "choice";
-    elements.typedAnswerForm.hidden = useChoices;
+    var useMap = isMapMode();
+    elements.typedAnswerForm.hidden = state.answerStyle !== "type";
     elements.choiceAnswer.hidden = !useChoices;
+    elements.mapAnswer.hidden = !useMap;
+    placeMap(useMap);
 
     if (useChoices) {
       renderChoices();
+    }
+    if (useMap && state.current) {
+      elements.mapAnswerCopy.textContent = state.promptType === "country"
+        ? "Tap " + state.current.country + " on the map."
+        : state.promptType === "flag"
+          ? "Tap the country that uses this flag."
+          : "Tap the country whose capital is " + state.current.capital + ".";
+    }
+  }
+
+  function isMapMode() {
+    return state.answerStyle === "map";
+  }
+
+  // In "Tap the map" mode the map moves under the card so it is big enough to tap.
+  function placeMap(useMap) {
+    if (useMap && elements.mapShell.parentNode !== elements.mapAnswer) {
+      elements.mapAnswer.appendChild(elements.mapShell);
+    } else if (!useMap && elements.mapShell.parentNode !== elements.mapPanel) {
+      elements.mapPanel.insertBefore(elements.mapShell, elements.mapLegend);
+    }
+    elements.mapPanel.classList.toggle("is-lent", useMap);
+  }
+
+  function handleMapTap(event) {
+    if (!isMapMode() || !state.current || state.hasAnswered || state.roundEnded) {
+      return;
+    }
+    var target = event.target.closest("[data-id]");
+    if (!target) {
+      return;
+    }
+    var tappedId = target.getAttribute("data-id");
+    var tapped = cards.find(function (card) {
+      return card.id === tappedId;
+    });
+    state.mapTappedId = tappedId;
+    var isCorrect = tappedId === state.current.id;
+    resolveAnswer(isCorrect, false);
+    if (!isCorrect && tapped) {
+      elements.feedbackText.textContent =
+        "Oops, that's " + tapped.country + ". " + state.current.country + " is the one in red.";
     }
   }
 
@@ -1100,6 +1263,8 @@
       elements.feedbackText.textContent = getCorrectMessage();
       elements.motivationText.textContent = getStreakMessage();
       markChoice(choiceButton, true);
+      playSound("correct");
+      recordDiaryCorrect();
       var petBonus = isPetHappy() ? 1 : 0;
       earnHearts(
         (state.hintShown ? heartRewards.correctWithHint : heartRewards.correct) + petBonus,
@@ -1110,6 +1275,10 @@
         earnHearts(heartRewards.streakBonus, "streak bonus");
         celebrate();
         buddyReact("streak");
+        if (!isEggStage(getPetStage())) {
+          petSay(randomItem(petLines.streak));
+          bounceClass(elements.petArt, "is-dancing", 1600);
+        }
       } else {
         buddyReact("correct");
       }
@@ -1121,6 +1290,7 @@
       elements.motivationText.textContent = "Answer: " + getExpectedAnswer() + ". Keep going.";
       markChoice(choiceButton, false);
       markCorrectChoice();
+      playSound("wrong");
       buddyReact("wrong");
     }
 
@@ -1435,6 +1605,9 @@
   }
 
   function getAnswerKey() {
+    if (isMapMode()) {
+      return "country";
+    }
     return state.promptType === "country" ? "capital" : "country";
   }
 
@@ -1508,6 +1681,7 @@
     var colors = ["#0f766e", "#14b8a6", "#f97316", "#facc15", "#2563eb", "#ec4899"];
     var effect = getShopItem(effectId || state.shop.equipped.effect);
     var emojiPieces = effect && effect.pieces;
+    playSound("fanfare");
     elements.celebrationLayer.innerHTML = "";
     for (var i = 0; i < 26; i += 1) {
       var piece = document.createElement("span");
@@ -1617,6 +1791,10 @@
         lastStage: "egg",
       },
       journey: { weekKey: "", count: 0, claimed: {} },
+      settings: { muted: false },
+      diary: {},
+      backupAt: 0,
+      backupReminderOn: "",
     };
     if (saved && typeof saved === "object") {
       shop.hearts = Math.max(0, Number(saved.hearts) || 0);
@@ -1641,6 +1819,14 @@
       if (saved.journey && typeof saved.journey === "object") {
         Object.assign(shop.journey, saved.journey);
       }
+      if (saved.settings && typeof saved.settings === "object") {
+        Object.assign(shop.settings, saved.settings);
+      }
+      if (saved.diary && typeof saved.diary === "object") {
+        shop.diary = saved.diary;
+      }
+      shop.backupAt = Number(saved.backupAt) || 0;
+      shop.backupReminderOn = String(saved.backupReminderOn || "");
     }
     return shop;
   }
@@ -1710,14 +1896,14 @@
     elements.cardBuddy.classList.remove("is-talking");
   }
 
-  function renderCardBuddy() {
+  function renderCardBuddy(moodOverride) {
     var buddy = getShopItem(state.shop.equipped.buddy);
     var hasBuddy = buddy && buddy.id !== "buddy-none";
     var isCow = hasBuddy && buddy.id === "buddy-cow";
     elements.cardBuddy.hidden = !hasBuddy;
     elements.cardBuddy.classList.toggle("is-cow", Boolean(isCow));
     if (isCow) {
-      elements.cardBuddyFace.innerHTML = getCowMarkup();
+      elements.cardBuddyFace.innerHTML = getCowMarkup(null, isEggStage(getPetStage()) ? null : moodOverride);
     } else {
       elements.cardBuddyFace.textContent = hasBuddy ? buddy.icon : "";
     }
@@ -1729,6 +1915,8 @@
     }
     var lines = state.shop.equipped.buddy === "buddy-cow" && petLines[mood] ? petLines[mood] : buddyLines[mood];
     elements.cardBuddyBubble.textContent = randomItem(lines);
+    // A surprised face for rare countries, back to normal for everything else.
+    renderCardBuddy(mood === "tricky" ? "surprised" : null);
     elements.cardBuddy.classList.remove("is-happy", "is-sad", "is-talking");
     void elements.cardBuddy.offsetWidth;
     elements.cardBuddy.classList.add(mood === "wrong" ? "is-sad" : "is-happy", "is-talking");
@@ -1801,6 +1989,14 @@
     if (item.category === "cow" || item.id === "buddy-cow") {
       icon.classList.add("is-cow");
       icon.innerHTML = getCowMarkup(item.slot ? item : null);
+    } else if (item.category === "home") {
+      preview.classList.add("is-scene");
+      icon.classList.add("is-cow");
+      preview.innerHTML = window.CowArt.scene(item.id);
+      icon.innerHTML = window.CowArt.render({ stage: "adult", mood: "happy" });
+    } else if (item.category === "friend" && item.id !== "friend-none") {
+      icon.classList.add("is-cow");
+      icon.innerHTML = window.CowArt.friend(item.id);
     } else {
       icon.textContent = item.icon;
     }
@@ -1836,6 +2032,10 @@
       button.className = "shop-action";
       button.textContent = "Win it in " + item.exclusive + " week";
       button.disabled = true;
+    } else if (item.grownOnly && !isPetGrown()) {
+      button.className = "shop-action";
+      button.textContent = "Unlocks on day " + petGrowDays;
+      button.disabled = true;
     } else if (owned) {
       button.className = "shop-action";
       button.textContent = item.slot ? "Wear it" : "Use this";
@@ -1870,17 +2070,18 @@
   }
 
   function buyItem(item) {
-    if (item.exclusive || isOwned(item) || state.shop.hearts < item.price) {
+    if (item.exclusive || (item.grownOnly && !isPetGrown()) || isOwned(item) || state.shop.hearts < item.price) {
       return;
     }
     state.shop.hearts -= item.price;
     state.shop.owned[item.id] = true;
+    playSound("sparkle");
     equipItem(item);
     celebrate(item.category === "effect" ? item.id : null);
   }
 
   function equipItem(item) {
-    if (!isOwned(item)) {
+    if (!isOwned(item) || (item.grownOnly && !isPetGrown())) {
       return;
     }
     var slot = getEquipSlot(item);
@@ -1958,9 +2159,15 @@
   function refreshPet(isFirstLoad) {
     var pet = state.shop.pet;
     var stage = getPetStage();
-    if (stage.id === pet.lastStage) {
-      return;
+    if (stage.id !== pet.lastStage) {
+      growPet(stage, isFirstLoad);
     }
+    welcomeFriend();
+    celebrateBirthday();
+  }
+
+  function growPet(stage, isFirstLoad) {
+    var pet = state.shop.pet;
 
     var wasEgg = pet.lastStage.indexOf("egg") === 0;
     pet.lastStage = stage.id;
@@ -1971,18 +2178,21 @@
       showToast(pet.name
         ? "🐣 Your egg hatched! Say hello to " + pet.name + ", your baby highland coo!"
         : "🐣 Your egg hatched! Your baby highland coo needs a name 💕");
+      addDiaryEvent("🐣", "Your egg hatched");
       celebrate("effect-hearts");
     } else if (stage.id === "adult") {
       showToast("🎉 " + capitalise(getPetName()) + " is all grown up! 90 days of love.");
+      addDiaryEvent("🎉", capitalise(getPetName()) + " grew all the way up");
       celebrate("effect-hearts");
     } else if (!isFirstLoad || stage.id !== "egg") {
       showToast("🌱 " + capitalise(getPetName()) + " grew into a " + stage.label.toLowerCase() + "!");
+      addDiaryEvent("🌱", "Grew into a " + stage.label.toLowerCase());
     }
     saveShop();
     renderCardBuddy();
   }
 
-  function getCowMarkup(previewItem) {
+  function getCowMarkup(previewItem, moodOverride) {
     var equipped = state.shop.equipped;
     var stage = getPetStage();
     var outfit = {
@@ -1997,7 +2207,7 @@
     }
     return window.CowArt.render({
       stage: previewItem ? "adult" : stage.id,
-      mood: previewItem ? "happy" : getPetMood().id,
+      mood: previewItem ? "happy" : moodOverride || getPetMood().id,
       hat: outfit.hat,
       face: outfit.face,
       neck: outfit.neck,
@@ -2016,7 +2226,8 @@
     if (!pet.name && elements.petNameForm.hidden) {
       openNameForm();
     }
-    elements.petStageLabel.textContent = stage.label + " · Day " + Math.min(age + 1, petGrowDays) + " of " + petGrowDays;
+    elements.petStageLabel.textContent = stage.label + " · Day " + Math.min(age + 1, petGrowDays) + " of " + petGrowDays +
+      (isBirthdayToday() ? " · 🎂 Birthday!" : "");
     elements.petGrowthFill.style.width = Math.min(100, (age / petGrowDays) * 100) + "%";
     elements.petGrowthNote.textContent = age >= petGrowDays
       ? "All grown up! 🎉"
@@ -2024,6 +2235,7 @@
 
     elements.petArt.innerHTML = getCowMarkup();
     elements.petArt.dataset.mood = egg ? "egg" : mood.id;
+    renderPetHome();
 
     elements.petHappinessValue.textContent = egg ? "Snug" : happiness + "%";
     elements.petHappinessFill.style.width = happiness + "%";
@@ -2080,6 +2292,7 @@
     renderHearts();
     renderPet();
     renderCardBuddy();
+    playSound("crunch");
     animateSnack(snack, button);
   }
 
@@ -2114,6 +2327,7 @@
       bounceClass(elements.petArt, snack.party ? "is-dancing" : "is-munching", snack.party ? 1600 : 1000);
       petSay(randomItem(snack.party ? petLines.party : petLines.fed));
       floatPetHearts(snack.party ? 8 : 4);
+      playSound("moo");
       if (snack.party) {
         celebrate();
       }
@@ -2181,6 +2395,9 @@
     var isFirstName = !state.shop.pet.name;
     state.shop.pet.name = name;
     state.shop.pet.nameChosen = true;
+    if (isFirstName) {
+      addDiaryEvent("💕", "Named your coo " + name);
+    }
     saveShop();
     closeNameForm();
     renderPet();
@@ -2248,6 +2465,7 @@
         }
       }
       showToast(message);
+      addDiaryEvent(tier.medal, tier.label + " medal on the " + continent + " trip");
       celebrate();
     });
     saveShop();
@@ -2293,14 +2511,486 @@
     elements.journeyNext.textContent = "New trip on Monday: " + getJourneyContinent(1);
   }
 
+  // Messages wait their turn so a hatch, birthday and medal on the same day are all seen.
+  var toastQueue = [];
+
   function showToast(message) {
-    elements.toast.textContent = message;
+    toastQueue.push(message);
+    if (toastQueue.length === 1) {
+      showNextToast();
+    }
+  }
+
+  function showNextToast() {
+    if (!toastQueue.length) {
+      return;
+    }
+    elements.toast.textContent = toastQueue[0];
     elements.toast.hidden = false;
     bounceClass(elements.toast, "is-visible", 4200);
-    window.clearTimeout(showToast.timeoutId);
-    showToast.timeoutId = window.setTimeout(function () {
+    window.setTimeout(function () {
       elements.toast.hidden = true;
+      toastQueue.shift();
+      window.setTimeout(showNextToast, 250);
     }, 4500);
+  }
+
+  // ---------- Cow life: homes, friends, birthdays, greetings ----------
+
+  function isPetGrown() {
+    return getPetAgeDays() >= petGrowDays;
+  }
+
+  function renderPetHome() {
+    var home = state.shop.equipped.home || "home-meadow";
+    if (elements.petScene.dataset.home !== home) {
+      elements.petScene.innerHTML = window.CowArt.scene(home);
+      elements.petScene.dataset.home = home;
+    }
+    var friend = isPetGrown() ? state.shop.equipped.friend : "friend-none";
+    var hasFriend = friend && friend !== "friend-none";
+    elements.petFriend.hidden = !hasFriend;
+    if (hasFriend && elements.petFriend.dataset.friend !== friend) {
+      elements.petFriend.innerHTML = window.CowArt.friend(friend);
+      elements.petFriend.dataset.friend = friend;
+    }
+  }
+
+  function welcomeFriend() {
+    var pet = state.shop.pet;
+    if (!isPetGrown() || pet.friendArrived) {
+      return;
+    }
+    pet.friendArrived = true;
+    state.shop.owned["friend-sheep"] = true;
+    if (state.shop.equipped.friend === "friend-none") {
+      state.shop.equipped.friend = "friend-sheep";
+    }
+    showToast("🐑 A woolly sheep moved in to keep " + getPetName() + " company! More friends are in the shop.");
+    addDiaryEvent("🐑", "A sheep friend moved in");
+    saveShop();
+  }
+
+  function isBirthdayToday() {
+    var age = getPetAgeDays();
+    return age >= petGrowDays && (age - petGrowDays) % birthdayEveryDays === 0;
+  }
+
+  function celebrateBirthday() {
+    var pet = state.shop.pet;
+    var today = getLocalDateKey();
+    if (!isBirthdayToday() || pet.lastBirthday === today) {
+      return;
+    }
+    pet.lastBirthday = today;
+    pet.happiness = 100;
+    pet.happinessAt = Date.now();
+    var months = Math.round(getPetAgeDays() / 30);
+    var gift = "a party hat";
+    if (state.shop.owned["cow-party-hat"]) {
+      state.shop.hearts += 50;
+      gift = "50 bonus hearts";
+    } else {
+      state.shop.owned["cow-party-hat"] = true;
+    }
+    showToast("🎂 Happy " + months + "-month birthday, " + getPetName() + "! A free birthday cake 🍰 and " + gift + "!");
+    addDiaryEvent("🎂", months + "-month birthday party");
+    saveShop();
+    renderHearts();
+    window.setTimeout(function () {
+      celebrate("effect-hearts");
+      bounceClass(elements.petArt, "is-dancing", 1600);
+    }, 1200);
+  }
+
+  function greetVisitor() {
+    if (isEggStage(getPetStage())) {
+      petSay("*wiggle wiggle*");
+      bounceClass(elements.petArt, "is-wobbling", 700);
+      return;
+    }
+    petSay(randomItem(petLines.hello));
+    bounceClass(elements.petArt, "is-hopping", 650);
+  }
+
+  // ---------- Sounds (made in the browser, no audio files needed) ----------
+
+  var audioContext = null;
+
+  function getAudioContext() {
+    if (state.shop.settings.muted) {
+      return null;
+    }
+    try {
+      audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+      return audioContext;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function playTone(context, options) {
+    var start = context.currentTime + (options.delay || 0);
+    var oscillator = context.createOscillator();
+    var gain = context.createGain();
+    oscillator.type = options.type || "sine";
+    oscillator.frequency.setValueAtTime(options.from, start);
+    if (options.to) {
+      oscillator.frequency.exponentialRampToValueAtTime(options.to, start + options.length);
+    }
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(options.volume || 0.1, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + options.length);
+    var output = gain;
+    if (options.filter) {
+      var filter = context.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = options.filter;
+      gain.connect(filter);
+      output = filter;
+    }
+    oscillator.connect(gain);
+    output.connect(context.destination);
+    oscillator.start(start);
+    oscillator.stop(start + options.length + 0.05);
+    return oscillator;
+  }
+
+  function playNoise(context, delay, length) {
+    var buffer = context.createBuffer(1, Math.floor(context.sampleRate * length), context.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < data.length; i += 1) {
+      data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    }
+    var source = context.createBufferSource();
+    var filter = context.createBiquadFilter();
+    var gain = context.createGain();
+    source.buffer = buffer;
+    filter.type = "bandpass";
+    filter.frequency.value = 1800;
+    gain.gain.value = 0.25;
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(context.destination);
+    source.start(context.currentTime + delay);
+  }
+
+  function playSound(name) {
+    var context = getAudioContext();
+    if (!context) {
+      return;
+    }
+    if (name === "correct") {
+      playTone(context, { from: 660, length: 0.14, volume: 0.08 });
+      playTone(context, { from: 990, length: 0.22, volume: 0.08, delay: 0.1 });
+    } else if (name === "wrong") {
+      playTone(context, { from: 320, to: 220, length: 0.25, volume: 0.07, type: "triangle" });
+    } else if (name === "moo") {
+      var moo = playTone(context, { from: 190, to: 120, length: 0.8, volume: 0.12, type: "sawtooth", filter: 700 });
+      var wobble = context.createOscillator();
+      var wobbleDepth = context.createGain();
+      wobble.frequency.value = 6;
+      wobbleDepth.gain.value = 5;
+      wobble.connect(wobbleDepth);
+      wobbleDepth.connect(moo.frequency);
+      wobble.start();
+      wobble.stop(context.currentTime + 0.9);
+    } else if (name === "crunch") {
+      [0, 0.13, 0.26].forEach(function (delay) {
+        playNoise(context, delay, 0.07);
+      });
+    } else if (name === "sparkle") {
+      [784, 988, 1175, 1568].forEach(function (note, index) {
+        playTone(context, { from: note, length: 0.18, volume: 0.06, delay: index * 0.07 });
+      });
+    } else if (name === "fanfare") {
+      [523, 659, 784, 1047].forEach(function (note, index) {
+        playTone(context, { from: note, length: 0.25, volume: 0.06, delay: index * 0.1, type: "triangle" });
+      });
+    }
+  }
+
+  function toggleSound() {
+    state.shop.settings.muted = !state.shop.settings.muted;
+    saveShop();
+    renderSoundButton();
+    playSound("correct");
+  }
+
+  function renderSoundButton() {
+    var muted = state.shop.settings.muted;
+    elements.soundIcon.textContent = muted ? "🔇" : "🔊";
+    elements.soundLabel.textContent = muted ? "Sound off" : "Sound on";
+    elements.soundButton.setAttribute("aria-pressed", String(!muted));
+  }
+
+  // ---------- Scrapbook diary ----------
+
+  function getDiaryDay(dateKey) {
+    var key = dateKey || getLocalDateKey();
+    if (!state.shop.diary[key]) {
+      state.shop.diary[key] = { c: 0, e: [] };
+    }
+    return state.shop.diary[key];
+  }
+
+  function recordDiaryCorrect() {
+    getDiaryDay().c += 1;
+  }
+
+  function addDiaryEvent(icon, text, dateKey) {
+    var day = getDiaryDay(dateKey);
+    var exists = day.e.some(function (event) {
+      return event.t === text;
+    });
+    if (!exists && day.e.length < 10) {
+      day.e.push({ i: icon, t: text });
+    }
+    saveShop();
+  }
+
+  function ensureEggInDiary() {
+    var bornOn = state.shop.pet.bornOn;
+    var day = state.shop.diary[bornOn];
+    if (!day || !day.e.some(function (event) {
+      return event.i === "🥚";
+    })) {
+      addDiaryEvent("🥚", "Your coo egg arrived", bornOn);
+    }
+  }
+
+  function openScrapbook() {
+    var today = new Date();
+    state.calendarMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    state.selectedDiaryDay = getLocalDateKey();
+    renderScrapbook();
+    elements.scrapbookOverlay.hidden = false;
+    elements.scrapbookCloseButton.focus();
+  }
+
+  function moveCalendar(step) {
+    state.calendarMonth = new Date(state.calendarMonth.getFullYear(), state.calendarMonth.getMonth() + step, 1);
+    renderScrapbook();
+  }
+
+  function toDateKey(date) {
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+  }
+
+  function renderScrapbook() {
+    var diary = state.shop.diary;
+    var keys = Object.keys(diary);
+    var daysPlayed = keys.filter(function (key) {
+      return diary[key].c > 0;
+    }).length;
+    var totalCorrect = keys.reduce(function (sum, key) {
+      return sum + diary[key].c;
+    }, 0);
+    var medals = keys.reduce(function (sum, key) {
+      return sum + diary[key].e.filter(function (event) {
+        return /medal/.test(event.t);
+      }).length;
+    }, 0);
+
+    elements.scrapbookStats.innerHTML = [
+      getSummaryStatMarkup("Days played", daysPlayed),
+      getSummaryStatMarkup("Day streak", getDayStreak()),
+      getSummaryStatMarkup("Correct", totalCorrect),
+      getSummaryStatMarkup("Medals", medals),
+    ].join("");
+
+    var month = state.calendarMonth;
+    elements.calendarMonth.textContent = month.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    elements.calendarGrid.innerHTML = "";
+    ["M", "T", "W", "T", "F", "S", "S"].forEach(function (label) {
+      var head = document.createElement("span");
+      head.className = "calendar-weekday";
+      head.textContent = label;
+      elements.calendarGrid.appendChild(head);
+    });
+    var offset = (month.getDay() + 6) % 7;
+    for (var blank = 0; blank < offset; blank += 1) {
+      elements.calendarGrid.appendChild(document.createElement("span"));
+    }
+    var daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+    var todayKey = getLocalDateKey();
+    for (var dayNumber = 1; dayNumber <= daysInMonth; dayNumber += 1) {
+      elements.calendarGrid.appendChild(getCalendarCell(new Date(month.getFullYear(), month.getMonth(), dayNumber), todayKey));
+    }
+    renderDiaryDetail();
+  }
+
+  function getCalendarCell(date, todayKey) {
+    var key = toDateKey(date);
+    var entry = state.shop.diary[key];
+    var cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = "calendar-day";
+    if (entry) {
+      var level = entry.c >= 25 ? 3 : entry.c >= 10 ? 2 : entry.c > 0 ? 1 : 0;
+      cell.classList.add("level-" + level);
+    }
+    if (key === todayKey) {
+      cell.classList.add("is-today");
+    }
+    if (key === state.selectedDiaryDay) {
+      cell.classList.add("is-selected");
+    }
+    cell.innerHTML =
+      "<span>" + date.getDate() + "</span>" +
+      (entry && entry.e.length ? '<span class="calendar-emoji">' + entry.e[entry.e.length - 1].i + "</span>" : "");
+    cell.addEventListener("click", function () {
+      state.selectedDiaryDay = key;
+      renderScrapbook();
+    });
+    return cell;
+  }
+
+  function renderDiaryDetail() {
+    var key = state.selectedDiaryDay;
+    var entry = state.shop.diary[key];
+    var date = parseDateKey(key);
+    var title = date.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+    if (!entry || (!entry.c && !entry.e.length)) {
+      elements.calendarDayDetail.innerHTML = "<strong>" + escapeHtml(title) + "</strong><p>Nothing here yet.</p>";
+      return;
+    }
+    var lines = [];
+    if (entry.c) {
+      lines.push("<li>✅ " + entry.c + " correct " + (entry.c === 1 ? "answer" : "answers") + "</li>");
+    }
+    entry.e.forEach(function (event) {
+      lines.push("<li>" + escapeHtml(event.i + " " + event.t) + "</li>");
+    });
+    elements.calendarDayDetail.innerHTML = "<strong>" + escapeHtml(title) + "</strong><ul>" + lines.join("") + "</ul>";
+  }
+
+  function getDayStreak() {
+    var streak = 0;
+    var date = new Date();
+    var todayEntry = state.shop.diary[toDateKey(date)];
+    if (!todayEntry || !todayEntry.c) {
+      // Today still counts as "in progress", so start from yesterday.
+      date.setDate(date.getDate() - 1);
+    }
+    while (state.shop.diary[toDateKey(date)] && state.shop.diary[toDateKey(date)].c > 0) {
+      streak += 1;
+      date.setDate(date.getDate() - 1);
+    }
+    return streak;
+  }
+
+  // ---------- Backup and restore ----------
+
+  function openBackup() {
+    elements.backupCode.value = getBackupCode();
+    elements.backupCopyStatus.textContent = "";
+    elements.restoreStatus.textContent = "";
+    elements.restoreCode.value = "";
+    renderBackupLast();
+    elements.backupOverlay.hidden = false;
+    elements.backupCloseButton.focus();
+  }
+
+  function closeDialog(overlay, returnFocus) {
+    overlay.hidden = true;
+    returnFocus.focus();
+  }
+
+  function getBackupCode() {
+    var json = JSON.stringify(state.shop);
+    return backupPrefix + window.btoa(unescape(encodeURIComponent(json)));
+  }
+
+  function renderBackupLast() {
+    elements.backupLast.textContent = state.shop.backupAt
+      ? "Last copied on " + new Date(state.shop.backupAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }) + "."
+      : "You haven't copied a save code yet.";
+  }
+
+  function copyBackupCode() {
+    var code = elements.backupCode.value;
+    var markCopied = function () {
+      state.shop.backupAt = Date.now();
+      saveShop();
+      renderBackupLast();
+      elements.backupCopyStatus.textContent = "Copied! Paste it somewhere safe 💕";
+    };
+    var fallback = function () {
+      elements.backupCode.focus();
+      elements.backupCode.select();
+      try {
+        if (document.execCommand("copy")) {
+          markCopied();
+          return;
+        }
+      } catch (error) {
+        // Fall through to the manual message below.
+      }
+      elements.backupCopyStatus.textContent = "Select the code above and copy it manually.";
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(markCopied, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function readBackupCode(code) {
+    var cleaned = String(code).replace(/\s+/g, "");
+    if (cleaned.indexOf(backupPrefix) !== 0) {
+      return null;
+    }
+    try {
+      var json = decodeURIComponent(escape(window.atob(cleaned.slice(backupPrefix.length))));
+      var data = JSON.parse(json);
+      if (typeof data.hearts !== "number" || !data.pet || typeof data.pet !== "object") {
+        return null;
+      }
+      return data;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function restoreFromCode() {
+    var data = readBackupCode(elements.restoreCode.value);
+    if (!data) {
+      elements.restoreStatus.textContent = "That code doesn't look right. Make sure you pasted all of it.";
+      return;
+    }
+    var summary = data.hearts + " hearts" + (data.pet.name ? " and " + data.pet.name + " the coo" : "");
+    if (!window.confirm("Restore this backup with " + summary + "? It replaces what's on this device right now.")) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(shopStorageKey, JSON.stringify(data));
+    } catch (error) {
+      elements.restoreStatus.textContent = "This browser won't let the game save. Try turning off private browsing.";
+      return;
+    }
+    window.location.reload();
+  }
+
+  function maybeRemindBackup() {
+    var shop = state.shop;
+    var today = getLocalDateKey();
+    var hasProgress = shop.hearts > 0 || Object.keys(shop.owned).length > 0 || shop.pet.name;
+    var since = shop.backupAt || parseDateKey(shop.pet.bornOn).getTime();
+    var daysSince = (Date.now() - since) / 86400000;
+    if (!hasProgress || daysSince < backupReminderDays || shop.backupReminderOn === today) {
+      return;
+    }
+    shop.backupReminderOn = today;
+    saveShop();
+    showToast("💾 Quick reminder: tap Backup at the top to save a code for your coo, just in case.");
   }
 
   init();

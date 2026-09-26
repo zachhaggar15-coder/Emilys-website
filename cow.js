@@ -162,6 +162,15 @@
   }
 
   function drawEyes(mood) {
+    if (mood === "surprised") {
+      return (
+        '<g class="cow-eyes">' +
+        '<circle cx="84" cy="100" r="10" fill="#fff" stroke="' + palette.eye + '" stroke-width="2.5"/>' +
+        '<circle cx="116" cy="100" r="10" fill="#fff" stroke="' + palette.eye + '" stroke-width="2.5"/>' +
+        '<circle cx="84" cy="101" r="4.5" fill="' + palette.eye + '"/><circle cx="116" cy="101" r="4.5" fill="' + palette.eye + '"/>' +
+        "</g>"
+      );
+    }
     if (mood === "sleepy") {
       return (
         '<path d="M76 102 q8 7 16 0" fill="none" stroke="' + palette.eye + '" stroke-width="3.5" stroke-linecap="round"/>' +
@@ -218,6 +227,7 @@
       content: '<path d="M93 129 Q100 135 107 129" fill="none" stroke="' + palette.mouth + '" stroke-width="3" stroke-linecap="round"/>',
       sad: '<path d="M93 133 Q100 127 107 133" fill="none" stroke="' + palette.mouth + '" stroke-width="3" stroke-linecap="round"/>',
       sleepy: '<ellipse cx="100" cy="131" rx="3.5" ry="3" fill="' + palette.mouth + '"/>',
+      surprised: '<ellipse cx="100" cy="132" rx="5" ry="6" fill="' + palette.mouth + '"/>',
     };
     return (
       '<ellipse cx="64" cy="116" rx="9" ry="6" fill="' + palette.blush + '" opacity="0.65"/>' +
@@ -323,5 +333,139 @@
     );
   }
 
-  window.CowArt = { render: render };
+  // Backgrounds for the cow's home. Moving parts (clouds, waves, snow) are animated in styles.css.
+  function scene(id) {
+    var scenes = {
+      "home-meadow":
+        sky("#dff3ff", "#f4fbff") +
+        '<circle cx="160" cy="36" r="16" fill="#fde68a"/>' +
+        cloud(30, 40) + cloud(110, 24) +
+        '<path d="M0 132 Q60 112 120 128 T200 120 V200 H0 Z" fill="#bbf7d0"/>' +
+        '<path d="M0 150 Q70 136 200 150 V200 H0 Z" fill="#86efac"/>' +
+        tinyFlower(26, 168, "#f9a8d4") + tinyFlower(172, 176, "#fde047") + tinyFlower(150, 160, "#c4b5fd"),
+      "home-glen":
+        sky("#e9e5ff", "#fdf4ff") +
+        cloud(120, 26) +
+        '<path d="M0 124 L44 62 L78 104 L116 50 L160 102 L200 70 V200 H0 Z" fill="#a5b4fc"/>' +
+        '<path d="M108 60 L116 50 L124 60 Z" fill="#fff"/><path d="M38 70 L44 62 L50 70 Z" fill="#fff"/>' +
+        '<path d="M0 138 L56 96 L100 128 L150 92 L200 124 V200 H0 Z" fill="#818cf8" opacity="0.7"/>' +
+        '<ellipse class="scene-wave" cx="150" cy="148" rx="46" ry="7" fill="#7dd3fc"/>' +
+        '<path d="M0 150 Q80 140 200 156 V200 H0 Z" fill="#c084fc" opacity="0.55"/>' +
+        '<path d="M0 162 Q90 150 200 166 V200 H0 Z" fill="#a3e635" opacity="0.8"/>' +
+        tinyFlower(20, 178, "#d946ef") + tinyFlower(60, 184, "#c026d3") + tinyFlower(176, 182, "#d946ef"),
+      "home-barn":
+        '<rect width="200" height="200" fill="#c98a55"/>' +
+        [0, 25, 50, 75, 100, 125, 150, 175]
+          .map(function (x) {
+            return '<rect x="' + x + '" y="0" width="25" height="150" fill="' + (x % 50 === 0 ? "#c98a55" : "#b97a47") + '"/>';
+          })
+          .join("") +
+        '<rect x="128" y="22" width="48" height="40" rx="4" fill="#bae6fd" stroke="#7c4a24" stroke-width="5"/>' +
+        '<path d="M152 22 V62 M128 42 H176" stroke="#7c4a24" stroke-width="4"/>' +
+        '<g class="scene-lantern"><path d="M40 0 V20" stroke="#5b3a1e" stroke-width="2"/>' +
+        '<rect x="32" y="20" width="16" height="20" rx="4" fill="#fde68a" stroke="#92400e" stroke-width="2"/></g>' +
+        '<rect x="0" y="150" width="200" height="50" fill="#fcd34d"/>' +
+        '<path d="M0 150 L12 142 L22 150 L36 140 L48 150 L60 143 L74 150 L90 141 L104 150 L118 142 L132 150 L146 140 L160 150 L174 143 L188 150 L200 144 V152 H0 Z" fill="#fbbf24"/>' +
+        '<rect x="6" y="128" width="40" height="26" rx="5" fill="#fbbf24" stroke="#d97706" stroke-width="2"/>' +
+        '<path d="M6 141 H46" stroke="#d97706" stroke-width="2"/>',
+      "home-beach":
+        sky("#bae6fd", "#f0f9ff") +
+        '<circle cx="40" cy="38" r="18" fill="#fde047"/>' +
+        cloud(120, 30) +
+        '<rect x="0" y="104" width="200" height="40" fill="#38bdf8"/>' +
+        '<path class="scene-wave" d="M-20 112 q10 -6 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0" fill="none" stroke="#e0f2fe" stroke-width="3"/>' +
+        '<path d="M0 136 Q100 124 200 138 V200 H0 Z" fill="#fde68a"/>' +
+        '<path d="M170 170 l4 -10 l4 10 l10 1 l-8 6 l3 10 l-9 -6 l-9 6 l3 -10 l-8 -6 Z" fill="#fb923c"/>' +
+        '<path d="M20 176 q8 -12 16 0 Z" fill="#f9a8d4"/>',
+      "home-snow":
+        sky("#c7d2fe", "#eef2ff") +
+        '<circle cx="158" cy="34" r="14" fill="#fef9c3"/>' +
+        '<path d="M0 132 Q60 118 120 130 T200 124 V200 H0 Z" fill="#f8fafc"/>' +
+        tree(26, 128) + tree(176, 122) + tree(150, 134) +
+        '<path d="M0 156 Q90 146 200 160 V200 H0 Z" fill="#ffffff"/>' +
+        '<g class="scene-snow">' +
+        [[20, 20], [60, 50], [100, 14], [140, 60], [180, 30], [40, 90], [120, 96], [170, 88], [80, 70]]
+          .map(function (flake) {
+            return '<circle cx="' + flake[0] + '" cy="' + flake[1] + '" r="2.4" fill="#fff"/>';
+          })
+          .join("") +
+        "</g>",
+    };
+    return (
+      '<svg class="scene-svg" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      (scenes[id] || scenes["home-meadow"]) +
+      "</svg>"
+    );
+  }
+
+  function sky(top, bottom) {
+    var id = "sky" + top.replace("#", "");
+    return (
+      '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + top + '"/>' +
+      '<stop offset="1" stop-color="' + bottom + '"/></linearGradient></defs>' +
+      '<rect width="200" height="200" fill="url(#' + id + ')"/>'
+    );
+  }
+
+  function cloud(x, y) {
+    return (
+      '<g class="scene-cloud"><ellipse cx="' + x + '" cy="' + y + '" rx="18" ry="8" fill="#fff"/>' +
+      '<circle cx="' + (x - 6) + '" cy="' + (y - 5) + '" r="8" fill="#fff"/><circle cx="' + (x + 6) + '" cy="' + (y - 7) + '" r="9" fill="#fff"/></g>'
+    );
+  }
+
+  function tinyFlower(x, y, color) {
+    return '<path d="M' + x + " " + (y + 10) + " V" + y + '" stroke="#16a34a" stroke-width="2"/>' + flower(x, y, color, 5);
+  }
+
+  function tree(x, y) {
+    return (
+      '<rect x="' + (x - 3) + '" y="' + (y + 18) + '" width="6" height="10" fill="#78350f"/>' +
+      '<path d="M' + x + " " + (y - 22) + " L" + (x + 16) + " " + (y + 20) + " L" + (x - 16) + " " + (y + 20) + ' Z" fill="#15803d"/>' +
+      '<path d="M' + x + " " + (y - 22) + " L" + (x + 7) + " " + (y - 4) + " L" + (x - 7) + " " + (y - 4) + ' Z" fill="#fff"/>'
+    );
+  }
+
+  // Little friends who keep the grown-up coo company.
+  function friend(id) {
+    var friends = {
+      "friend-sheep":
+        '<ellipse cx="50" cy="92" rx="4" ry="8" fill="#4b3a36"/><ellipse cx="70" cy="92" rx="4" ry="8" fill="#4b3a36"/>' +
+        [[42, 66, 14], [58, 60, 16], [74, 66, 14], [48, 78, 14], [68, 78, 14]]
+          .map(function (puff) {
+            return '<circle cx="' + puff[0] + '" cy="' + puff[1] + '" r="' + puff[2] + '" fill="#fff" stroke="#e5e7eb" stroke-width="2"/>';
+          })
+          .join("") +
+        '<ellipse cx="60" cy="52" rx="12" ry="11" fill="#4b3a36"/>' +
+        '<ellipse cx="46" cy="50" rx="7" ry="4" fill="#4b3a36"/><ellipse cx="74" cy="50" rx="7" ry="4" fill="#4b3a36"/>' +
+        '<circle cx="56" cy="50" r="2.5" fill="#fff"/><circle cx="64" cy="50" r="2.5" fill="#fff"/>' +
+        '<circle cx="60" cy="40" r="6" fill="#fff"/>',
+      "friend-chick":
+        '<path d="M52 96 V88 M68 96 V88" stroke="#f97316" stroke-width="3" stroke-linecap="round"/>' +
+        '<circle cx="60" cy="68" r="24" fill="#fde047"/>' +
+        '<path d="M38 70 q-8 -6 -2 -14" fill="#facc15"/><path d="M82 70 q8 -6 2 -14" fill="#facc15"/>' +
+        '<circle cx="52" cy="62" r="3.5" fill="#2b1a12"/><circle cx="68" cy="62" r="3.5" fill="#2b1a12"/>' +
+        '<path d="M56 70 L64 70 L60 76 Z" fill="#f97316"/>' +
+        '<ellipse cx="46" cy="72" rx="4" ry="3" fill="#fda4af"/><ellipse cx="74" cy="72" rx="4" ry="3" fill="#fda4af"/>' +
+        '<path d="M58 44 q2 -8 6 -2" fill="none" stroke="#facc15" stroke-width="3" stroke-linecap="round"/>',
+      "friend-piglet":
+        '<rect x="44" y="84" width="8" height="12" rx="4" fill="#f9a8d4"/><rect x="68" y="84" width="8" height="12" rx="4" fill="#f9a8d4"/>' +
+        '<ellipse cx="60" cy="72" rx="26" ry="20" fill="#fbcfe8"/>' +
+        '<path d="M40 56 L44 44 L52 54 Z" fill="#f9a8d4"/><path d="M80 56 L76 44 L68 54 Z" fill="#f9a8d4"/>' +
+        '<circle cx="51" cy="66" r="3" fill="#2b1a12"/><circle cx="69" cy="66" r="3" fill="#2b1a12"/>' +
+        '<ellipse cx="60" cy="76" rx="9" ry="6" fill="#f9a8d4"/>' +
+        '<circle cx="57" cy="76" r="1.8" fill="#be185d"/><circle cx="63" cy="76" r="1.8" fill="#be185d"/>' +
+        '<path d="M86 70 q8 -4 4 -10 q-4 -4 -6 2" fill="none" stroke="#f9a8d4" stroke-width="3" stroke-linecap="round"/>',
+    };
+    if (!friends[id]) {
+      return "";
+    }
+    return (
+      '<svg class="friend-svg" viewBox="20 20 80 80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<ellipse cx="60" cy="97" rx="22" ry="3" fill="rgba(0,0,0,0.12)"/>' +
+      '<g class="friend-bob">' + friends[id] + "</g></svg>"
+    );
+  }
+
+  window.CowArt = { render: render, scene: scene, friend: friend };
 })();
